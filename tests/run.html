@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KO 2027 Tests</title>
+<!--
+  Double-click this file to run every test in your browser — no Node needed.
+  Each test file runs in its own hidden frame so they can't affect each other.
+  (In a terminal with Node installed, you can also run: node tests/<name>.test.js)
+-->
+<style>
+  :root { --bg: #fff; --fg: #1a1a1a; --dim: #666; --ok: #137333; --bad: #c5221f; --card: #f5f5f5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161616; --fg: #eee; --dim: #999; --ok: #5bd17a; --bad: #ff6b60; --card: #222; }
+  }
+  body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--fg);
+         font: 14px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  #summary { font-size: 16px; font-weight: 600; margin: 8px 0 20px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  section { background: var(--card); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+  section h2 { font-size: 15px; margin: 0 0 6px; }
+  pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.5 ui-monospace, Menlo, monospace; }
+  iframe { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>KO 2027 — Tests</h1>
+  <div id="summary">Running…</div>
+  <div id="results"></div>
+</main>
+<script>
+  // Test file → the shared files it needs.
+  var SUITES = [
+    ['firebase.test.js', ['firebase']],
+    ['cascade.test.js', ['cascade']],
+    ['standings.test.js', ['standings']],
+    ['timer.test.js', ['timer']],
+    ['schedule-gen.test.js', ['schedule-gen']],
+    ['integration.test.js', ['schedule-gen', 'standings', 'cascade']]
+  ];
+
+  // Runs inside each frame: a tiny stand-in for Node's `require` and `assert`.
+  var FRAME_SHIM = '(' + function () {
+    var mods = {};
+    window.__mods = mods;
+    window.console = {
+      log: function () { parent.postMessage({ id: window.__id, line: [].join.call(arguments, ' ') }, '*'); }
+    };
+    window.onerror = function (msg) {
+      parent.postMessage({ id: window.__id, fail: String(msg).replace(/^Uncaught /, '') }, '*');
+    };
+    function same(a, b) {
+      if (a === b) return true;
+      if (typeof a !== 'object' || typeof b !== 'object' || !a || !b) return false;
+      if (Array.isArray(a) !== Array.isArray(b)) return false;
+      var ka = Object.keys(a), kb = Object.keys(b);
+      if (ka.length !== kb.length) return false;
+      return ka.every(function (k) { return same(a[k], b[k]); });
+    }
+    function show(v) { try { return JSON.stringify(v); } catch (e) { return String(v); } }
+    var assert = {
+      equal: function (a, b, m) { if (a !== b) throw new Error(m || ('expected ' + show(b) + ', got ' + show(a))); },
+      deepEqual: function (a, b, m) { if (!same(a, b)) throw new Error(m || ('expected ' + show(b) + ', got ' + show(a))); },
+      ok: function (v, m) { if (!v) throw new Error(m || 'expected a true value'); },
+      match: function (s, re) { if (!re.test(s)) throw new Error(show(s) + ' does not match ' + re); },
+      throws: function (fn, re) {
+        try { fn(); } catch (e) {
+          if (re && !re.test(e.message)) throw new Error('wrong error: ' + e.message);
+          return;
+        }
+        throw new Error('expected an error but none was thrown');
+      }
+    };
+    window.require = function (p) {
+      if (p === 'node:assert/strict') return assert;
+      if (mods[p]) return mods[p];
+      throw new Error('require: unknown module ' + p);
+    };
+  } + ')();';
+
+  var results = document.getElementById('results');
+  var state = {};
+  var remaining = SUITES.length;
+
+  function finishSuite(id) {
+    var s = state[id];
+    if (s.done) return;
+    s.done = true;
+    var passed = s.lines.filter(function (l) { return /^\s+ok\s/.test(l); }).length;
+    s.ok = !s.failed && s.lines.some(function (l) { return /passed$/.test(l); });
+    s.title.innerHTML = '<span class="' + (s.ok ? 'ok' : 'bad') + '">' + (s.ok ? '✓' : '✗') + '</span> ' +
+      id + ' — ' + passed + ' passed' + (s.ok ? '' : ', FAILED');
+    remaining--;
+    if (remaining === 0) {
+      var allOk = Object.keys(state).every(function (k) { return state[k].ok; });
+      var total = Object.keys(state).reduce(function (n, k) {
+        return n + state[k].lines.filter(function (l) { return /^\s+ok\s/.test(l); }).length;
+      }, 0);
+      var summary = document.getElementById('summary');
+      summary.className = allOk ? 'ok' : 'bad';
+      summary.textContent = allOk ? 'All ' + total + ' tests passed' : 'Some tests FAILED — see red sections below';
+    }
+  }
+
+  window.addEventListener('message', function (e) {
+    var s = state[e.data && e.data.id];
+    if (!s) return;
+    if (e.data.line != null) {
+      s.lines.push(e.data.line);
+      s.pre.textContent = s.lines.join('\n');
+      if (/passed$/.test(e.data.line)) finishSuite(e.data.id);
+    }
+    if (e.data.fail) {
+      s.failed = true;
+      s.lines.push('FAILED: ' + e.data.fail);
+      s.pre.textContent = s.lines.join('\n');
+      finishSuite(e.data.id);
+    }
+    if (e.data.loaded) setTimeout(function () { finishSuite(e.data.id); }, 0);
+  });
+
+  // Always load fresh copies so an edited file is picked up on reload.
+  var BUST = '?v=' + Date.now();
+
+  SUITES.forEach(function (suite) {
+    var id = suite[0];
+    var section = document.createElement('section');
+    var title = document.createElement('h2');
+    var pre = document.createElement('pre');
+    title.textContent = id + ' — running…';
+    section.appendChild(title);
+    section.appendChild(pre);
+    results.appendChild(section);
+    state[id] = { lines: [], title: title, pre: pre };
+
+    var html = '<script>window.__id=' + JSON.stringify(id) + ';' + FRAME_SHIM + '<\/script>';
+    suite[1].forEach(function (name) {
+      var path = '../src/shared/' + name + '.js';
+      html += '<script>window.module={exports:{}};<\/script>' +
+        '<script src="' + path + BUST + '"><\/script>' +
+        '<script>__mods[' + JSON.stringify(path) + ']=module.exports;<\/script>';
+    });
+    html += '<script src="' + id + BUST + '"><\/script>' +
+      '<script>parent.postMessage({id:window.__id,loaded:true},"*");<\/script>';
+
+    var frame = document.createElement('iframe');
+    // srcdoc frames resolve relative paths against this page (the tests/ folder)
+    html = '<base href="' + location.href.replace(/[^/]*$/, '') + '">' + html;
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
+</script>
+</body>
+</html>
