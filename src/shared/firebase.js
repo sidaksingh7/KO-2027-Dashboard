@@ -204,5 +204,6 @@
     return auth.onAuthStateChanged(fn);
   };
 
-  root.KO = KO;
+  // Merge rather than replace, so other shared/ files work in any load order.
+  root.KO = Object.assign(root.KO || {}, KO);
 })(typeof window !== 'undefined' ? window : this);
