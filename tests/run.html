@@ -40,7 +40,8 @@
     ['standings.test.js', ['standings']],
     ['timer.test.js', ['timer']],
     ['schedule-gen.test.js', ['schedule-gen']],
-    ['integration.test.js', ['schedule-gen', 'standings', 'cascade']]
+    ['integration.test.js', ['schedule-gen', 'standings', 'cascade']],
+    ['public-helpers.test.js', ['standings', 'cascade', '../public/helpers']]
   ];
 
   // Runs inside each frame: a tiny stand-in for Node's `require` and `assert`.
@@ -139,10 +140,11 @@
 
     var html = '<script>window.__id=' + JSON.stringify(id) + ';' + FRAME_SHIM + '<\/script>';
     suite[1].forEach(function (name) {
-      var path = '../src/shared/' + name + '.js';
+      var path = ('../src/shared/' + name + '.js').replace('/shared/../', '/');
+      var alias = '../shared/' + name + '.js'; // how src/public files require shared ones
       html += '<script>window.module={exports:{}};<\/script>' +
         '<script src="' + path + BUST + '"><\/script>' +
-        '<script>__mods[' + JSON.stringify(path) + ']=module.exports;<\/script>';
+        '<script>__mods[' + JSON.stringify(path) + ']=__mods[' + JSON.stringify(alias) + ']=module.exports;<\/script>';
     });
     html += '<script src="' + id + BUST + '"><\/script>' +
       '<script>parent.postMessage({id:window.__id,loaded:true},"*");<\/script>';
