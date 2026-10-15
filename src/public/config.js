@@ -83,7 +83,11 @@
     volleyball: '1a0VuekY97k_ffwvVXCDgEnrBxHOQeLqw'
   };
   function photoUrl(idOrPath, size) {
-    if (/[\/.]/.test(idOrPath)) return idOrPath; // local file
+    if (/[\/.]/.test(idOrPath)) {
+      // local file — make it absolute, since CSS url() inside a stylesheet resolves
+      // relative to the stylesheet, not the page
+      return root.document ? new URL(idOrPath, root.document.baseURI).href : idOrPath;
+    }
     return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(idOrPath) + '&sz=' + (size || 'w1600');
   }
 
