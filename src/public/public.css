@@ -38,7 +38,7 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
   .hdr-top { padding: 10px 0; }
   .nav { flex: 1; justify-content: flex-end; }
   .nav a { flex: 0 0 auto; padding: 22px 14px 19px; }
-  .hdr-me { margin-left: 0; order: 3; }
+  .hdr-me { display: none; } /* "My Team" is in the menu on wide screens */
 }
 
 .banner { font: 500 14px/1.4 var(--font-ui); padding: 9px 0; text-align: center; }
