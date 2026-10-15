@@ -18,6 +18,8 @@
  *   ko2027/event/...                          event-wide public info (status banner, etc.)
  *
  * Public pages only need app + database; admin.html also loads the auth SDK.
+ * Until the config below is filled in, a SANDBOX database saved in this browser
+ * is used instead (src/shared/local-db.js — load it before this file).
  */
 (function (root) {
   'use strict';
@@ -151,23 +153,30 @@
   // Browser: connect to Firebase
   // ---------------------------------------------------------------------------
 
-  var firebase = root.firebase;
-  if (!firebase) {
-    throw new Error('Firebase SDK not loaded. Add the firebase-*-compat.js <script> tags before firebase.js.');
-  }
-
-  // false until the TODO config above is filled in — pages show demo data instead.
+  // false until the TODO config above is filled in.
   KO.isConfigured = FIREBASE_CONFIG.apiKey !== 'PASTE_HERE';
-  if (!KO.isConfigured) {
+
+  var db, auth;
+  if (KO.isConfigured) {
+    var firebase = root.firebase;
+    if (!firebase) {
+      throw new Error('Firebase SDK not loaded. Add the firebase-*-compat.js <script> tags before firebase.js.');
+    }
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    // Auth SDK is only loaded on admin.html.
+    auth = firebase.auth ? firebase.auth() : null;
+    KO.mode = 'firebase';
+  } else {
+    // Sandbox: a stand-in database saved in this browser (src/shared/local-db.js).
+    var createLocalDb = root.KO && root.KO.createLocalDb;
+    if (!createLocalDb) throw new Error('Firebase not configured and local-db.js not loaded before firebase.js.');
     console.warn('[KO] Firebase config not filled in yet (see TODO in src/shared/firebase.js). ' +
-      'Pages will use demo data; admin login will not work.');
+      'Using the in-browser SANDBOX database — changes stay on this computer.');
+    db = createLocalDb();
+    auth = null;
+    KO.mode = 'sandbox';
   }
-
-  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-
-  var db = firebase.database();
-  // Auth SDK is only loaded on admin.html.
-  var auth = firebase.auth ? firebase.auth() : null;
 
   // Gap between this device's clock and Firebase's server clock, in ms.
   // Firebase fills it in shortly after connecting.
@@ -206,19 +215,27 @@
   };
 
   // Admin login (email/password accounts are created in the Firebase console).
+  // In the sandbox there's no real login: anyone can open admin on this computer.
+  var SANDBOX_USER = { email: 'sandbox@local', uid: 'sandbox', isSandbox: true };
   function needAuth() {
     if (!auth) throw new Error('Auth SDK not loaded — add firebase-auth-compat.js to this page.');
   }
   KO.signIn = function (email, password) {
+    if (KO.mode === 'sandbox') return Promise.resolve({ user: SANDBOX_USER });
     needAuth();
     return auth.signInWithEmailAndPassword(email, password);
   };
   KO.signOut = function () {
+    if (KO.mode === 'sandbox') return Promise.resolve();
     needAuth();
     return auth.signOut();
   };
   // fn(user) on login, fn(null) on logout. Returns an unsubscribe function.
   KO.onAuthChange = function (fn) {
+    if (KO.mode === 'sandbox') {
+      setTimeout(function () { fn(SANDBOX_USER); }, 0);
+      return function () {};
+    }
     needAuth();
     return auth.onAuthStateChanged(fn);
   };

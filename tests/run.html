@@ -41,7 +41,9 @@
     ['timer.test.js', ['timer']],
     ['schedule-gen.test.js', ['schedule-gen']],
     ['integration.test.js', ['schedule-gen', 'standings', 'cascade']],
-    ['public-helpers.test.js', ['standings', 'cascade', '../public/helpers']]
+    ['public-helpers.test.js', ['standings', 'cascade', '../public/helpers']],
+    ['local-db.test.js', ['local-db']],
+    ['scoring.test.js', ['../admin/scoring']]
   ];
 
   // Runs inside each frame: a tiny stand-in for Node's `require` and `assert`.
@@ -121,7 +123,8 @@
       s.pre.textContent = s.lines.join('\n');
       finishSuite(e.data.id);
     }
-    if (e.data.loaded) setTimeout(function () { finishSuite(e.data.id); }, 0);
+    // Async test files print "N passed" a little after loading; give them time.
+    if (e.data.loaded) setTimeout(function () { finishSuite(e.data.id); }, 3000);
   });
 
   // Always load fresh copies so an edited file is picked up on reload.
