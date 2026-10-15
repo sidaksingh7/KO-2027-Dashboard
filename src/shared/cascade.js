@@ -42,13 +42,16 @@
 
   var ROUND_NAMES = { qf: 'QF', sf: 'SF', final: 'Final', third: '3rd Place' };
 
-  // 'basketball-d1-qf-1' → 'QF1', 'basketball-d1-final-1' → 'Final'
+  // 'basketball-d1-qf-1' → 'QF1', 'basketball-d1-final-1' → 'Final',
+  // 'soccer-d1-rr-4' → 'Game 4', 'soccer-d1-ga-2' → 'Group A · Game 2'
   function gameName(gameId, game) {
     if (game && game.name) return game.name;
     var parts = gameId.split('-');
     var slot = parts[parts.length - 1];
     var round = parts[parts.length - 2];
     if (round === 'final' || round === 'third') return ROUND_NAMES[round];
+    if (round === 'rr') return 'Game ' + slot;
+    if (/^g[a-z]$/.test(round)) return 'Group ' + round.charAt(1).toUpperCase() + ' · Game ' + slot;
     return (ROUND_NAMES[round] || String(round).toUpperCase()) + slot;
   }
 

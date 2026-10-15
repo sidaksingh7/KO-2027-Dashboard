@@ -158,7 +158,8 @@
       case 'publish': body = publishPage(); break;
       default: body = scoreList();
     }
-    app.innerHTML = nav() + '<div class="wrap page">' + (state.page === 'game' ? '' : ctxBar()) + body + '</div>';
+    var noCtx = state.page === 'game' || state.page === 'publish';
+    app.innerHTML = nav() + '<div class="wrap page">' + (noCtx ? '' : ctxBar()) + body + '</div>';
 
     Object.keys(keep).forEach(function (id) {
       var el = doc.getElementById(id);

@@ -70,6 +70,8 @@ test('gameName builds short names from ids', () => {
   assert.equal(gameName('basketball-d1-final-1'), 'Final');
   assert.equal(gameName('basketball-d1-third-1'), '3rd Place');
   assert.equal(gameName('x', { name: 'Custom' }), 'Custom');
+  assert.equal(gameName('soccer-d1-rr-4'), 'Game 4');
+  assert.equal(gameName('soccer-d1-ga-2'), 'Group A · Game 2');
 });
 
 // ---------------------------------------------------------------------------
