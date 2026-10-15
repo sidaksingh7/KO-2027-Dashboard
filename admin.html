@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050B1C">
+<meta name="robots" content="noindex">
+<title>Admin · Khalsa Olympics 2027</title>
+<link rel="icon" href="assets/brand/crest.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/shared/brand.css">
+<link rel="stylesheet" href="src/admin/admin.css">
+</head>
+<body>
+<header class="admin-header">
+  <div class="wrap">
+    <a class="brand" href="#score">
+      <span class="crest"><img src="assets/brand/crest.png" alt=""></span>
+      <span><b>Khalsa Olympics</b><small>Admin · 2027</small></span>
+    </a>
+    <span id="mode"></span>
+    <span id="who"></span>
+  </div>
+</header>
+<main id="app"><div class="wrap page"><p class="muted">Loading…</p></div></main>
+<div id="toast" aria-live="polite"></div>
+
+<!-- Firebase (compat SDK) incl. auth. Unused while in sandbox mode. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+
+<script src="src/shared/local-db.js"></script>
+<script src="src/shared/firebase.js"></script>
+<script src="src/shared/cascade.js"></script>
+<script src="src/shared/standings.js"></script>
+<script src="src/shared/timer.js"></script>
+<script src="src/shared/schedule-gen.js"></script>
+<script src="src/public/config.js"></script>
+<script src="src/public/helpers.js"></script>
+<script src="src/public/demo.js"></script>
+<script src="src/admin/scoring.js"></script>
+<script src="src/admin/admin-data.js"></script>
+<script src="src/admin/admin.js"></script>
+</body>
+</html>

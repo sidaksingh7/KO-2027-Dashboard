@@ -32,6 +32,9 @@
     soccer: {
       name: 'Soccer', icon: 'soccer', tagline: 'Passion. Speed. Unity.',
       bracket: 'groups2',
+      timer: { direction: 'down', minutes: 20 },
+      // Admin "build schedule" defaults (2026: 20-min games, 28-min slots, Fields A–D)
+      scheduleDefaults: { courts: 'Field A, Field B, Field C, Field D', start: '09:00', slotMinutes: 28, gamesPerTeam: null },
       format: 'Two groups play a round robin. Top 2 in each group reach the semifinals ' +
         '(A1 vs B2, B1 vs A2), then the Final and 3rd place match.',
       ranking: 'Win 3 pts · Draw 1 · Loss 0. Ties: head-to-head (2 teams), goal difference ' +
@@ -41,6 +44,8 @@
     basketball: {
       name: 'Basketball', icon: 'basketball', tagline: 'Teamwork. Precision. Determination.',
       bracket: 'top8',
+      timer: { direction: 'down', minutes: 20 },
+      scheduleDefaults: { courts: 'Gym 1, Gym 2, Gym 3', start: '10:00', slotMinutes: 30, gamesPerTeam: 4 },
       format: 'Round robin, then the top 8 play quarterfinals (1v8, 4v5, 2v7, 3v6), ' +
         'semifinals, the Final and 3rd place.',
       ranking: 'Ranked by wins. Ties: head-to-head (2 teams), point difference ' +
@@ -50,6 +55,8 @@
     volleyball: {
       name: 'Volleyball', icon: 'volleyball', tagline: 'Energy. Trust. Resilience.',
       bracket: 'top4',
+      timer: { direction: 'up' }, // stopwatch, no limit
+      scheduleDefaults: { courts: 'Gym 1, Gym 2, Gym 3', start: '10:00', slotMinutes: 30, gamesPerTeam: 3 },
       format: 'Best-of-3-sets matches. Round robin, then the top 4 play semifinals ' +
         '(1v4, 2v3), the Final and 3rd place.',
       ranking: 'Ranked by match wins. Ties: head-to-head (2 teams), set difference, point ' +
