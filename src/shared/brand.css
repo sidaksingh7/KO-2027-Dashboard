@@ -1,0 +1,153 @@
+/*
+ * KO 2027 — Brand tokens + base components, shared by public, admin and TV pages.
+ * Colours and fonts from the 2027 homepage + Gameday Hub designs.
+ *
+ * Fonts (load in each page's <head>):
+ * https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&family=Mr+Dafoe&family=Noto+Sans+Gurmukhi:wght@500;700&display=swap
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #050B1C;
+  --bg-2: #081230;
+  --panel: #0B1631;
+  --panel-2: #10204A;
+  --gold: #E3B45A;
+  --gold-bright: #F0C774;
+  --gold-soft: rgba(227, 180, 90, 0.38);
+  --gold-faint: rgba(227, 180, 90, 0.12);
+  --cream: #F5F1E8;
+  --text-2: #C9CFDC;
+  --muted: #8E98B0;
+  --line: rgba(245, 241, 232, 0.12);
+  --line-2: rgba(245, 241, 232, 0.25);
+  --on-gold: #1A1205;
+  --live: #E5484D;
+  --win: #5CC98A;
+  --loss: #E5484D;
+
+  --font-display: 'Bebas Neue', 'Oswald', Impact, sans-serif;
+  --font-ui: 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-script: 'Mr Dafoe', cursive;
+  --font-gurmukhi: 'Noto Sans Gurmukhi', sans-serif;
+
+  --radius: 6px;
+  --gutter: 16px;
+  --max: 1180px;
+  --header-h: 64px;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --glow: radial-gradient(120% 80% at 85% -10%, #1B2F6B 0%, rgba(5, 11, 28, 0) 60%);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--cream);
+  font: 400 16px/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+img { max-width: 100%; display: block; }
+h1, h2, h3, h4, p { margin: 0; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Type ---------- */
+.kicker {
+  color: var(--gold);
+  font: 600 13px/1.2 var(--font-ui);
+  letter-spacing: .26em;
+  text-transform: uppercase;
+}
+.display {
+  font: 400 clamp(40px, 9vw, 64px)/.95 var(--font-display);
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+.display-sm { font: 400 clamp(28px, 6vw, 40px)/1 var(--font-display); text-transform: uppercase; letter-spacing: .01em; }
+.lead { color: var(--text-2); font-weight: 300; font-size: 16px; }
+.muted { color: var(--muted); }
+.gold { color: var(--gold); }
+.script { font-family: var(--font-script); color: var(--gold); font-weight: 400; }
+.gurmukhi { font-family: var(--font-gurmukhi); }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 46px; padding: 10px 20px;
+  background: var(--gold); color: var(--on-gold);
+  border: 1px solid var(--gold); border-radius: var(--radius);
+  font: 600 16px/1 var(--font-ui); letter-spacing: .02em;
+  transition: background .2s var(--ease), transform .15s var(--ease);
+}
+.btn:hover { background: var(--gold-bright); }
+.btn:active { transform: scale(.98); }
+.btn-outline { background: rgba(5, 11, 28, .55); color: var(--cream); border: 1.5px solid var(--cream); }
+.btn-outline:hover { background: rgba(245, 241, 232, .1); }
+.btn-ghost { background: transparent; color: var(--gold); border-color: var(--gold-soft); }
+.btn-ghost:hover { background: var(--gold-faint); }
+.btn-sm { min-height: 36px; padding: 6px 14px; font-size: 14px; }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.arrow-link { color: var(--gold); font-weight: 500; font-size: 14px; letter-spacing: .04em; }
+.arrow-link::after { content: ' →'; }
+
+/* ---------- Segmented toggle (gold) + chips ---------- */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1.5px solid var(--gold); border-radius: 0; }
+.seg button {
+  min-width: 0; min-height: 48px; padding: 8px 6px; background: transparent; border: 0;
+  font: 400 clamp(15px, 4.4vw, 19px)/1 var(--font-display); letter-spacing: .05em; color: var(--cream);
+  overflow-wrap: anywhere;
+}
+.seg button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.seg button small { font: 500 11px/1 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+.seg button + button { border-left: 1.5px solid var(--gold-soft); }
+.seg button[aria-pressed="true"] { background: var(--gold); color: var(--on-gold); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 40px; padding: 6px 14px; border: 1px solid var(--line-2); background: transparent;
+  border-radius: 0; font: 400 16px/1 var(--font-ui); color: var(--cream);
+}
+.chip[aria-pressed="true"] { border-color: var(--gold); background: rgba(227, 180, 90, .16); }
+
+/* ---------- Cards, pills ---------- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.card-gold { border-color: var(--gold-soft); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 3px;
+  font: 600 11px/1.2 var(--font-ui); letter-spacing: .12em; text-transform: uppercase;
+}
+.pill-live { background: var(--live); color: #fff; }
+.pill-live::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: pulse 1.4s infinite; }
+.pill-final { background: rgba(245, 241, 232, .1); color: var(--text-2); }
+.pill-gold { background: var(--gold-faint); color: var(--gold); border: 1px solid var(--gold-soft); }
+.pill-dq { background: rgba(229, 72, 77, .15); color: #FF9A9D; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+/* ---------- Inputs ---------- */
+.input {
+  width: 100%; min-height: 52px; padding: 12px 16px;
+  background: rgba(16, 32, 74, .55); color: var(--cream);
+  border: 1.5px solid var(--gold-soft); border-radius: 0;
+  font: 400 18px/1.2 var(--font-ui);
+}
+.input::placeholder { color: var(--muted); }
+.input:focus { outline: none; border-color: var(--gold); background: rgba(16, 32, 74, .85); }
+.label { display: block; margin-bottom: 8px; font: 500 13px/1 var(--font-ui); letter-spacing: .2em; text-transform: uppercase; color: var(--text-2); }
+
+/* ---------- Crest mark ---------- */
+.crest { width: 44px; height: 44px; border-radius: 50%; border: 1.5px dashed var(--gold); display: grid; place-items: center; overflow: hidden; flex: none; }
+.crest img { width: 78%; height: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
