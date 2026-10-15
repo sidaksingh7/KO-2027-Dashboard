@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "ko2027": {
+      "admin": {
+        ".read": "auth != null && root.child('ko2027/admin/admins').child(auth.uid).val() === true",
+        ".write": "auth != null && root.child('ko2027/admin/admins').child(auth.uid).val() === true"
+      },
+      "event": {
+        ".read": true,
+        ".write": "auth != null && root.child('ko2027/admin/admins').child(auth.uid).val() === true"
+      },
+      "$sport": {
+        ".validate": "$sport === 'soccer' || $sport === 'basketball' || $sport === 'volleyball'",
+        "$division": {
+          ".validate": "$division === 'd1' || $division === 'd2' || $division === 'd3'",
+          "published": {
+            ".read": true,
+            ".write": "auth != null && root.child('ko2027/admin/admins').child(auth.uid).val() === true"
+          },
+          "live": {
+            ".read": true,
+            ".write": "auth != null && root.child('ko2027/admin/admins').child(auth.uid).val() === true"
+          }
+        }
+      }
+    }
+  }
+}
