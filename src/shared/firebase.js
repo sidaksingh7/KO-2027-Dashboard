@@ -14,7 +14,10 @@
  * DATA LAYOUT
  *   ko2027/{sport}/{division}/published/...  finalized data — public pages read this
  *   ko2027/{sport}/{division}/live/...       in-progress game state — TVs + admin read this
- *   ko2027/admin/...                          admin-only settings (banner, admin list, etc.)
+ *   ko2027/admin/...                          admin-only settings (admin list, etc.)
+ *   ko2027/event/...                          event-wide public info (status banner, etc.)
+ *
+ * Public pages only need app + database; admin.html also loads the auth SDK.
  */
 (function (root) {
   'use strict';
@@ -99,9 +102,14 @@
     return join(ROOT + '/' + sport + '/' + division + '/live', [].slice.call(arguments, 2));
   }
 
-  // adminPath('banner') → 'ko2027/admin/banner'
+  // adminPath('admins') → 'ko2027/admin/admins'
   function adminPath() {
     return join(ROOT + '/admin', [].slice.call(arguments));
+  }
+
+  // eventPath('banner') → 'ko2027/event/banner'
+  function eventPath() {
+    return join(ROOT + '/event', [].slice.call(arguments));
   }
 
   // Builds one multi-path update that writes each field AND its updatedAt time.
@@ -129,6 +137,7 @@
     publishedPath: publishedPath,
     livePath: livePath,
     adminPath: adminPath,
+    eventPath: eventPath,
     stampedFields: stampedFields
   };
 
@@ -144,18 +153,21 @@
 
   var firebase = root.firebase;
   if (!firebase) {
-    throw new Error('Firebase SDK not loaded. Add the three firebase-*-compat.js <script> tags before firebase.js.');
+    throw new Error('Firebase SDK not loaded. Add the firebase-*-compat.js <script> tags before firebase.js.');
   }
 
-  if (FIREBASE_CONFIG.apiKey === 'PASTE_HERE') {
+  // false until the TODO config above is filled in — pages show demo data instead.
+  KO.isConfigured = FIREBASE_CONFIG.apiKey !== 'PASTE_HERE';
+  if (!KO.isConfigured) {
     console.warn('[KO] Firebase config not filled in yet (see TODO in src/shared/firebase.js). ' +
-      'Database reads may work, but admin login will not.');
+      'Pages will use demo data; admin login will not work.');
   }
 
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 
   var db = firebase.database();
-  var auth = firebase.auth();
+  // Auth SDK is only loaded on admin.html.
+  var auth = firebase.auth ? firebase.auth() : null;
 
   // Gap between this device's clock and Firebase's server clock, in ms.
   // Firebase fills it in shortly after connecting.
@@ -177,6 +189,7 @@
   KO.publishedRef = function () { return db.ref(publishedPath.apply(null, arguments)); };
   KO.liveRef = function () { return db.ref(livePath.apply(null, arguments)); };
   KO.adminRef = function () { return db.ref(adminPath.apply(null, arguments)); };
+  KO.eventRef = function () { return db.ref(eventPath.apply(null, arguments)); };
 
   // Writes fields under ref, each with its own updatedAt. Returns a Promise.
   //   KO.stampedUpdate(KO.liveRef('soccer', 'd1', 'games', gameId), { score1: 3 })
@@ -193,14 +206,20 @@
   };
 
   // Admin login (email/password accounts are created in the Firebase console).
+  function needAuth() {
+    if (!auth) throw new Error('Auth SDK not loaded — add firebase-auth-compat.js to this page.');
+  }
   KO.signIn = function (email, password) {
+    needAuth();
     return auth.signInWithEmailAndPassword(email, password);
   };
   KO.signOut = function () {
+    needAuth();
     return auth.signOut();
   };
   // fn(user) on login, fn(null) on logout. Returns an unsubscribe function.
   KO.onAuthChange = function (fn) {
+    needAuth();
     return auth.onAuthStateChanged(fn);
   };
 

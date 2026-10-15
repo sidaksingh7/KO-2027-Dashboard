@@ -31,6 +31,10 @@ test('adminPath builds admin path', () => {
   assert.equal(KO.adminPath(), 'ko2027/admin');
 });
 
+test('eventPath builds event-wide path', () => {
+  assert.equal(KO.eventPath('banner'), 'ko2027/event/banner');
+});
+
 test('unknown sport is rejected', () => {
   assert.throws(() => KO.publishedPath('socer', 'd1'), /Unknown sport "socer"/);
 });
