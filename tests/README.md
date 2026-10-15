@@ -41,3 +41,6 @@ Each file prints `ok` per test and `N passed` at the end; a failure stops with t
 | timer.test.js | Start/pause/reset/adjust, countdown vs stopwatch, sync merge (2026 reset bug) |
 | schedule-gen.test.js | Round robin, games-per-team, groups, bracket templates, court/time slots |
 | integration.test.js | Schedule → results → standings → seeds → bracket champion |
+| public-helpers.test.js | Public page helpers: team search, Toronto times, division views, routing |
+| local-db.test.js | Sandbox database (the Firebase stand-in used before config is pasted) |
+| scoring.test.js | Scorekeeper actions: points, volleyball sets, finals, playoff ties, forfeits |

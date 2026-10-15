@@ -26,18 +26,38 @@ Firebase Auth email/password for admins · GitHub Pages hosting.
 
 ```
 ko2027/
-  admin/                         admin-only settings (banner, admin list, …)
+  admin/admins/{uid}: true       who may write (security rules check this)
+  event/banner                   { text, level } shown on public site + TVs
   {sport}/{division}/            sport = soccer | basketball | volleyball, division = d1 | d2 | d3
-    published/                   finalized — public pages read here
-    live/                        in progress — TVs + admin read here
+    live/                        admin writes here; TVs + admin read here
+      teams/{teamId}             { name, group? }   group 'A'|'B' for soccer
+      games/{gameId}             game (below), with updatedAt per field
+      timers/{gameId}            timer (src/shared/timer.js)
+      dq/{teamId}: true
+      manualOrder: [teamId]      coin-flip order for unbreakable ties
+    published/                   public site reads ONLY here
+      teams, games, groups, dq, manualOrder, publishedAt
 ```
+
+**The published gate.** Admin → Publish copies a division's live teams/games/groups/dq/
+manualOrder into `published/` in one write. Teams and schedule changes reach the public
+site only that way. Once a division has been published, every scored game is also copied
+to `published/games/{id}` as a single write, so public scores stay current but never show
+half-written data. Timers are never published (TVs read them from `live/`).
+
+Security rules: `database.rules.json` — everyone may read `live/`, `published/`, `event/`;
+only users listed in `admin/admins` may write. Setup steps: [SETUP.md](SETUP.md).
 
 Paths are never written by hand: use `KO.publishedPath / livePath / adminPath`
 (or the `…Ref` versions). They reject unknown sports/divisions and characters Firebase forbids.
 
-> **Planned (week 2–3), not built yet:** what exactly goes under `published/` vs `live/`
-> (teams, games, seeds, DQ list, timers), the "publish" button that copies live → published,
-> and database security rules (public read; writes only for admin accounts).
+### Sandbox mode
+
+Until the Firebase config in `src/shared/firebase.js` is filled in, `KO.db` is a
+**sandbox** (`src/shared/local-db.js`): the same API (`on/off/once/set/update/transaction`)
+saved in the browser's localStorage, live across tabs. Admin needs no login, and the
+public site shows the built-in demo tournament until something is published to the
+sandbox. Admin → Publish → *Load demo tournament* fills it for a full dry run.
 
 ### Timestamps
 
@@ -65,6 +85,7 @@ Load order in HTML:
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="src/shared/local-db.js"></script>
 <script src="src/shared/firebase.js"></script>
 <script src="src/shared/cascade.js"></script>
 <script src="src/shared/standings.js"></script>
@@ -79,6 +100,36 @@ Load order in HTML:
 | `standings.js` | `KO.computeStandings(games, teamIds, { sport, groups, dqTeamIds, manualOrder })` | yes |
 | `timer.js` | `KO.timer.createTimer/start/pause/reset/adjust/elapsed/shown/display/mergeTimer` | yes |
 | `schedule-gen.js` | `KO.schedule.roundRobin/bracket/assignSlots` | yes |
+| `local-db.js` | `KO.createLocalDb()` — sandbox stand-in for the Firebase database | — |
+| `brand.css` | Colours, fonts, buttons, tabs, chips, cards (2027 navy/gold design) | — |
+
+---
+
+## Pages
+
+| Page | Files | Reads | For |
+|---|---|---|---|
+| `index.html` | `src/public/*` | `published/` + `event/banner` | Spectators (phone-first) |
+| `admin.html` | `src/admin/*` | `live/` (+ publishedAt) | Scorekeepers, organizers |
+| `tv.html` | `src/tv/*` | `live/` (incl. timers) | Venue screens |
+
+All three use the same `helpers.divisionView()` → standings + `resolveBracket()`, so a
+bracket can never look different on the public site, admin and TVs.
+
+**Public** (`#`, `#schedule`, `#playoffs`, `#team=<id>`, `#myteam`, `#info`): hero + find
+your team + live scores + sports + past champions; schedule by day/division; standings +
+bracket per division; team page (next game, field, results); My Team remembered on the
+device; venue, rules, conduct, langar, past champions, 2026 partners.
+Event text (venue, days, formats, champions history) lives in `src/public/config.js`.
+
+**Admin** (`#score`, `#game=<id>`, `#teams`, `#schedule`, `#standings`, `#publish`):
+- Every game change runs `scoring.js` inside a **transaction**, so it applies to the latest
+  saved game (two +1 taps both count; an offline phone can't overwrite newer scores).
+- Schedule is built for a whole sport at once (all divisions share the fields/gyms).
+- Timers: start/pause/set time/reset — only reset changes duration (timer rule 3).
+
+**TV** (`#board=<sport>`, `#court=<name>&sport=<sport>`, `#bracket=<sport>`): auto-rotating
+divisions every 12 s; court screens show the running clock.
 
 How they connect:
 
@@ -104,7 +155,8 @@ schedule-gen  ──games──▶  (scorekeeper enters results)  ──▶  sta
   sets, currentSet, setsWon1, setsWon2,   // volleyball only — best of 3
   winnerId,                      // scorekeeper's pick for a tie (soccer penalties)
   forfeitBy: 1 | 2,              // no-show in one game
-  court, slot, startsAt          // from assignSlots
+  court, slot, startsAt, endsAt  // from assignSlots
+  updatedAt: { field: ms }       // one stamp per changed field (scoring.applyPatch)
 }
 ```
 
@@ -168,10 +220,11 @@ Open `tests/run.html` in a browser, or run `node tests/<name>.test.js`.
 
 ## Timeline
 
-- Week 1 (Oct 15–22): shared foundation + tests ✅
-- Week 2 (Oct 22–29): public pages — landing, full schedule, playoffs, team detail, info
-- Week 3 (Oct 29 – Nov 5): admin + auth, team management, scheduling UI, live scoring
-- Week 4 (Nov 5–15): TV screens + end-to-end dry run with seeded data
+- Shared foundation + tests ✅
+- Public pages ✅
+- Admin + auth, teams, scheduling, live scoring ✅ (auth untested until Firebase is configured)
+- TV screens ✅
+- Next: paste Firebase config ([SETUP.md](SETUP.md)), volunteer dry runs, polish
 
 **Out of scope for 2027:** bilingual UI, video highlights, historical archive, native apps,
 spectator accounts, cross-division play.
