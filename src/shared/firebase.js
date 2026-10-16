@@ -25,28 +25,23 @@
   'use strict';
 
   // ---------------------------------------------------------------------------
-  // TODO: PASTE YOUR FIREBASE CONFIG HERE
-  //
-  // Where to find it:
-  //   1. Go to https://console.firebase.google.com and open "khalsa-olympics-2027".
-  //   2. Click the gear icon (top left, next to "Project Overview") → "Project settings".
-  //   3. On the "General" tab, scroll down to "Your apps".
-  //      - If there's no web app yet, click the "</>" icon, give it a nickname
-  //        (e.g. "ko-dashboard"), leave "Firebase Hosting" unchecked, click "Register app".
-  //   4. Under "SDK setup and configuration", choose "Config".
-  //   5. Copy each value into the matching line below (keep the quotes).
+  // Firebase config for the khalsa-olympics-2027 project
+  // (Firebase console → Project settings → General → Your apps → Config).
   //
   // These values are NOT secret — they're visible to anyone who opens the site.
-  // What protects the data is the Realtime Database security rules.
+  // What protects the data is the Realtime Database security rules
+  // (database.rules.json — see SETUP.md).
+  //
+  // To go back to the in-browser SANDBOX for testing, set apiKey to 'PASTE_HERE'.
   // ---------------------------------------------------------------------------
   var FIREBASE_CONFIG = {
-    apiKey: 'PASTE_HERE',
-    authDomain: 'PASTE_HERE',
+    apiKey: 'AIzaSyAk8I-E_YfhVFC6K-QnEK_kxRcjlOnUmoc',
+    authDomain: 'khalsa-olympics-2027.firebaseapp.com',
     databaseURL: 'https://khalsa-olympics-2027-default-rtdb.firebaseio.com',
-    projectId: 'PASTE_HERE',
-    storageBucket: 'PASTE_HERE',
-    messagingSenderId: 'PASTE_HERE',
-    appId: 'PASTE_HERE'
+    projectId: 'khalsa-olympics-2027',
+    storageBucket: 'khalsa-olympics-2027.firebasestorage.app',
+    messagingSenderId: '458197004854',
+    appId: '1:458197004854:web:629eb4a32ebeb8d2219e97'
   };
 
   var ROOT = 'ko2027';
