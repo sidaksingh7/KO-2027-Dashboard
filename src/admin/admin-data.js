@@ -279,6 +279,88 @@
   // Sandbox tools (only when Firebase isn't configured)
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // Test teams (works with real Firebase too): made-up teams in every division,
+  // flagged test: true so they can be removed in one click before the event.
+  // ---------------------------------------------------------------------------
+
+  var TEST_TEAMS = {
+    soccer: {
+      d1: [['Fateh FC', 'A'], ['Singh Strikers', 'A'], ['Panj Aab United', 'A'], ['Chardi Kala FC', 'B'], ['Nirbhau XI', 'B']],
+      d2: [['Saint Soldiers', 'A'], ['Miri Piri FC', 'A'], ['Sangat United', 'A'], ['Lions of Malton', 'A'],
+           ['Kesri Knights', 'B'], ['Five Rivers FC', 'B'], ['Baaz FC', 'B'], ['Tegh Titans', 'B']],
+      d3: [['Northside Singhs', 'A'], ['Akal Athletic', 'A'], ['Royal Sikhs FC', 'A'], ['Dastar Dynamos', 'A'],
+           ['Shaheed FC', 'B'], ['Caledon Kings', 'B'], ['Jhujaru FC', 'B'], ['Seva Squad', 'B']]
+    },
+    basketball: {
+      d1: ['Akal Ballers', 'Daler Dunkers', 'Khalsa Warriors', 'Sher Squad', 'Fateh Hoopers', 'Kesri Kings', 'Panth Pride', 'Malton Mavericks'],
+      d2: ['Five Rivers Ballers', 'Seva Shooters', 'Nirbhau Hoops', 'Tegh Titans', 'Baaz Ballers', 'Charhdi Kala Hoops', 'Royal Sikhs', 'Dastar Dynasty'],
+      d3: ['Springdale Singhs', 'Saint Soldiers', 'Lion Hearts', 'Jhujaru Elite', 'Gurdwara Gunners', 'Miri Piri Elite', 'Brampton Bravehearts', 'Mississauga Mavs']
+    },
+    volleyball: {
+      d1: ['Kalgi Spikers', 'Ekta Smash', 'Fateh Volley', 'Sangat Setters', 'Nishan Net', 'Kesri Blockers', 'Five Rivers Volley', 'Akal Aces'],
+      d2: ['Baaz Blockers', 'Chardi Kala Spikers', 'Dhan Diggers', 'Panth Power', 'Seva Servers', 'Sher Spikers', 'Royal Rally', 'Malton Volley'],
+      d3: ['Khanda Kills', 'Miri Piri Volley', 'Nirbhau Net', 'Tegh Smash', 'Lion Lifters', 'Gurmat Gold', 'Kaur Power', 'Caledon Spikers']
+    }
+  };
+
+  // Adds any test team that isn't there yet (keeps existing teams), then
+  // publishes every division. Resolves { added, divisions }.
+  function addTestTeams() {
+    var added = 0;
+    var jobs = [];
+    H.SPORT_ORDER.forEach(function (s) {
+      H.DIVISION_ORDER.forEach(function (d) {
+        var list = TEST_TEAMS[s][d];
+        jobs.push(KO.liveRef(s, d, 'teams').once('value').then(function (snap) {
+          var existing = snap.val() || {};
+          var update = {};
+          list.forEach(function (entry) {
+            var name = Array.isArray(entry) ? entry[0] : entry;
+            var id = H.teamId(name, s, d);
+            if (existing[id]) return;
+            var team = { name: name, test: true, createdAt: KO.now() };
+            if (Array.isArray(entry)) team.group = entry[1];
+            update[id] = team;
+            added++;
+          });
+          return Object.keys(update).length ? KO.liveRef(s, d, 'teams').update(update) : null;
+        }).then(function () { return publishDivision(s, d); }));
+      });
+    });
+    return Promise.all(jobs).then(function () { return { added: added, divisions: jobs.length }; });
+  }
+
+  // Removes teams flagged test: true. Refuses in a division that has games
+  // involving them (clear the schedule first).
+  function removeTestTeams() {
+    var removed = 0, blocked = [];
+    var jobs = [];
+    H.SPORT_ORDER.forEach(function (s) {
+      H.DIVISION_ORDER.forEach(function (d) {
+        jobs.push(KO.liveRef(s, d).once('value').then(function (snap) {
+          var live = snap.val() || {};
+          var teams = live.teams || {};
+          var ids = Object.keys(teams).filter(function (id) { return teams[id].test; });
+          if (!ids.length) return null;
+          if (ids.some(function (id) { return teamHasGames(live, id); })) {
+            blocked.push(KO.config.SPORTS[s].name + ' ' + KO.config.EVENT.divisions[d]);
+            return null;
+          }
+          var update = {};
+          ids.forEach(function (id) { update[id] = null; });
+          removed += ids.length;
+          return KO.liveRef(s, d, 'teams').update(update).then(function () {
+            return KO.publishedRef(s, d, 'publishedAt').once('value').then(function (p) {
+              return p.val() ? publishDivision(s, d) : null;
+            });
+          });
+        }));
+      });
+    });
+    return Promise.all(jobs).then(function () { return { removed: removed, blocked: blocked }; });
+  }
+
   function seedDemo() {
     if (KO.mode !== 'sandbox') return Promise.reject(new Error('Demo data can only be loaded into the sandbox'));
     var demo = KO.demo.build();
@@ -332,6 +414,8 @@
     unpublishDivision: unpublishDivision,
     setBanner: setBanner,
     seedDemo: seedDemo,
+    addTestTeams: addTestTeams,
+    removeTestTeams: removeTestTeams,
     resetSandbox: resetSandbox
   };
 })(typeof window !== 'undefined' ? window : this);

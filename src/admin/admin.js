@@ -537,6 +537,12 @@
         '<a class="btn btn-outline" href="tv.html" target="_blank" rel="noopener">TV screens ↗</a>' +
       '</div></section>' +
 
+      '<section class="card sandbox-tools"><h2 class="display-sm">Test teams</h2>' +
+        '<p class="muted small">Adds 8 made-up teams to every division (soccer split into Groups A/B) and publishes them, ' +
+        'so you can try the schedule, scoring and TVs. Your real teams are kept. Remove them before the event.</p><div class="t-btns">' +
+        '<button class="btn" data-action="test-teams">Add test teams</button>' +
+        '<button class="btn btn-outline" data-action="remove-test-teams">Remove test teams</button></div></section>' +
+
       (sandbox ? '<section class="card sandbox-tools"><h2 class="display-sm">Sandbox tools</h2>' +
         '<p class="muted small">Firebase isn’t set up yet, so everything here is saved only in this browser. ' +
         'Load a full made-up tournament to try every screen, then reset when done.</p><div class="t-btns">' +
@@ -728,6 +734,21 @@
           });
         });
         result(Promise.all(jobs), 'Published ' + jobs.length + ' division(s)');
+        break;
+      case 'test-teams':
+        if (!root.confirm('Add made-up test teams to all 9 divisions and publish them?')) break;
+        result(A.addTestTeams().then(function (r) {
+          toast(r.added ? 'Added ' + r.added + ' test teams and published all divisions' : 'Test teams were already there — published all divisions');
+          return r;
+        }));
+        break;
+      case 'remove-test-teams':
+        if (!root.confirm('Remove all test teams?')) break;
+        result(A.removeTestTeams().then(function (r) {
+          if (r.blocked.length) toast('Removed ' + r.removed + '. Not removed (they have games — clear the schedule first): ' + r.blocked.join(', '), 'err');
+          else toast('Removed ' + r.removed + ' test teams');
+          return r;
+        }));
         break;
       case 'seed':
         if (root.confirm('Replace everything in the sandbox with a made-up demo tournament?')) result(A.seedDemo(), 'Demo tournament loaded');
