@@ -103,7 +103,10 @@
     var sandbox = KO.mode === 'sandbox';
     doc.getElementById('mode').innerHTML = sandbox
       ? '<span class="pill pill-gold" title="Firebase not configured — changes stay in this browser">Sandbox</span>'
-      : '<span class="pill pill-live" title="Connected to the real Firebase database">Live data</span>';
+      : '<span class="pill pill-live" title="Using the real Firebase database">Live data</span>' +
+        (state.connected
+          ? ' <span class="pill pill-ok" title="Changes are reaching Firebase">● Connected</span>'
+          : ' <span class="pill pill-offline" title="Changes are NOT reaching Firebase. They are kept on this device and sent when the connection returns.">Offline — not saving</span>');
     doc.getElementById('who').innerHTML = state.user
       ? '<span class="muted small">' + esc(state.user.email) + '</span>' +
         (sandbox ? '' : ' <button class="btn btn-ghost btn-sm" data-action="signout">Sign out</button>')
@@ -833,6 +836,14 @@
   // ---------------------------------------------------------------------------
   // Start
   // ---------------------------------------------------------------------------
+
+  // Is this device actually reaching Firebase? Shown in the header, because
+  // while offline Firebase keeps changes on the device and the page looks normal.
+  state.connected = KO.mode === 'sandbox';
+  KO.onConnectionChange(function (ok) {
+    state.connected = ok;
+    renderShell();
+  });
 
   var watching = false;
   KO.onAuthChange(function (user) {
