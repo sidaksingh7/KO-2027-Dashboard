@@ -576,8 +576,50 @@
     });
   }
 
+  // Builds every sport's schedule with the defaults from config.js and publishes
+  // all divisions. Refuses if any game has already started.
+  function runBuildAllSchedules() {
+    state.testStatus = { text: 'Building schedules…' };
+    render();
+    var problems = [];
+    var jobs = H.SPORT_ORDER.map(function (sport) {
+      var bySport = state.data.live[sport];
+      if (A.startedGames(bySport)) { problems.push(sportName(sport) + ': games already started — not replaced'); return null; }
+      var def = C.SPORTS[sport].scheduleDefaults;
+      var res = A.buildSchedule(sport, bySport, {
+        format: C.SPORTS[sport].bracket,
+        gamesPerTeam: def.gamesPerTeam,
+        courts: def.courts.split(',').map(function (x) { return x.trim(); }),
+        startsAt: dayTime(sport, def.start),
+        slotMinutes: def.slotMinutes,
+        minRestSlots: 0
+      });
+      if (res.error) { problems.push(sportName(sport) + ': ' + res.error); return null; }
+      return A.saveSchedule(sport, res.games).then(function () {
+        return Promise.all(H.DIVISION_ORDER.map(function (d) { return A.publishDivision(sport, d); }));
+      });
+    });
+    return Promise.all(jobs).then(function () {
+      state.testStatus = problems.length
+        ? { err: true, text: 'Schedules built with problems: ' + problems.join(' · ') }
+        : { text: 'Done: built and published the schedule for all 3 sports.' };
+      toast(state.testStatus.text, problems.length ? 'err' : 'ok');
+      render();
+    }, function (e) {
+      state.testStatus = { err: true, text: 'Could not build schedules: ' + (e && e.code ? e.code + ' — ' : '') + (e && e.message ? e.message : String(e)) };
+      toast(state.testStatus.text, 'err');
+      render();
+    });
+  }
+
   function route() {
     var r = H.parseHash(root.location.hash);
+    // Link admin.html#publish&do=build-schedules builds + publishes every sport's schedule.
+    if (r.params['do'] === 'build-schedules' && state.user && state.data) {
+      root.history.replaceState(null, '', '#publish');
+      r = H.parseHash('#publish');
+      setTimeout(runBuildAllSchedules, 0);
+    }
     // Link admin.html#publish&do=add-test-teams adds the test teams by itself once
     // a signed-in admin opens it (used to set up a test run in one step).
     if (r.params['do'] === 'add-test-teams' && state.user && state.data) {
