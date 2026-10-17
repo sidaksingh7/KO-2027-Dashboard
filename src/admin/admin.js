@@ -541,7 +541,9 @@
         '<p class="muted small">Adds 8 made-up teams to every division (soccer split into Groups A/B) and publishes them, ' +
         'so you can try the schedule, scoring and TVs. Your real teams are kept. Remove them before the event.</p><div class="t-btns">' +
         '<button class="btn" data-action="test-teams">Add test teams</button>' +
-        '<button class="btn btn-outline" data-action="remove-test-teams">Remove test teams</button></div></section>' +
+        '<button class="btn btn-outline" data-action="remove-test-teams">Remove test teams</button></div>' +
+        (state.testStatus ? '<div class="notice' + (state.testStatus.err ? ' notice-err' : '') + '">' + esc(state.testStatus.text) + '</div>' : '') +
+        '</section>' +
 
       (sandbox ? '<section class="card sandbox-tools"><h2 class="display-sm">Sandbox tools</h2>' +
         '<p class="muted small">Firebase isn’t set up yet, so everything here is saved only in this browser. ' +
@@ -736,11 +738,18 @@
         result(Promise.all(jobs), 'Published ' + jobs.length + ' division(s)');
         break;
       case 'test-teams':
-        if (!root.confirm('Add made-up test teams to all 9 divisions and publish them?')) break;
-        result(A.addTestTeams().then(function (r) {
-          toast(r.added ? 'Added ' + r.added + ' test teams and published all divisions' : 'Test teams were already there — published all divisions');
-          return r;
-        }));
+        // No "are you sure" pop-up: adding test teams never removes anything,
+        // and Chrome can silently block pop-ups. The result shows on the page.
+        state.testStatus = { text: 'Adding test teams…' };
+        render();
+        A.addTestTeams().then(function (r) {
+          state.testStatus = { text: (r.added ? 'Done: added ' + r.added + ' test teams' : 'Done: test teams were already there') +
+            ' and published all 9 divisions.' };
+          render();
+        }, function (e) {
+          state.testStatus = { err: true, text: 'Could not add test teams: ' + (e && e.code ? e.code + ' — ' : '') + (e && e.message ? e.message : String(e)) };
+          render();
+        });
         break;
       case 'remove-test-teams':
         if (!root.confirm('Remove all test teams?')) break;

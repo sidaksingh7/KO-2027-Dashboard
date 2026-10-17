@@ -23,6 +23,7 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
 .small { font-size: 14px; }
 .empty { color: var(--muted); padding: 16px 0; }
 .notice { padding: 10px 14px; border-left: 3px solid var(--gold); background: var(--gold-faint); color: var(--cream); margin: 12px 0; }
+.notice-err { border-left-color: var(--live); background: rgba(229, 72, 77, .15); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .row .input { flex: 1 1 180px; }
 .input-sm { min-height: 40px; padding: 6px 10px; font-size: 15px; width: auto; }
