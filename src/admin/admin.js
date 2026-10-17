@@ -559,8 +559,32 @@
   // Routing + events
   // ---------------------------------------------------------------------------
 
+  // No "are you sure" pop-up: adding test teams never removes anything, and
+  // Chrome can silently block pop-ups. The result shows on the Publish page.
+  function runAddTestTeams() {
+    state.testStatus = { text: 'Adding test teams…' };
+    render();
+    return A.addTestTeams().then(function (r) {
+      state.testStatus = { text: (r.added ? 'Done: added ' + r.added + ' test teams' : 'Done: test teams were already there') +
+        ' and published all 9 divisions.' };
+      toast(state.testStatus.text);
+      render();
+    }, function (e) {
+      state.testStatus = { err: true, text: 'Could not add test teams: ' + (e && e.code ? e.code + ' — ' : '') + (e && e.message ? e.message : String(e)) };
+      toast(state.testStatus.text, 'err');
+      render();
+    });
+  }
+
   function route() {
     var r = H.parseHash(root.location.hash);
+    // Link admin.html#publish&do=add-test-teams adds the test teams by itself once
+    // a signed-in admin opens it (used to set up a test run in one step).
+    if (r.params['do'] === 'add-test-teams' && state.user && state.data) {
+      root.history.replaceState(null, '', '#publish');
+      r = H.parseHash('#publish');
+      setTimeout(runAddTestTeams, 0);
+    }
     var page = r.page === 'home' ? 'score' : r.page;
     if (r.params.game) page = 'game';
     var changed = page !== state.page || r.params.game !== state.params.game;
@@ -741,18 +765,7 @@
         result(Promise.all(jobs), 'Published ' + jobs.length + ' division(s)');
         break;
       case 'test-teams':
-        // No "are you sure" pop-up: adding test teams never removes anything,
-        // and Chrome can silently block pop-ups. The result shows on the page.
-        state.testStatus = { text: 'Adding test teams…' };
-        render();
-        A.addTestTeams().then(function (r) {
-          state.testStatus = { text: (r.added ? 'Done: added ' + r.added + ' test teams' : 'Done: test teams were already there') +
-            ' and published all 9 divisions.' };
-          render();
-        }, function (e) {
-          state.testStatus = { err: true, text: 'Could not add test teams: ' + (e && e.code ? e.code + ' — ' : '') + (e && e.message ? e.message : String(e)) };
-          render();
-        });
+        runAddTestTeams();
         break;
       case 'remove-test-teams':
         if (!root.confirm('Remove all test teams?')) break;
