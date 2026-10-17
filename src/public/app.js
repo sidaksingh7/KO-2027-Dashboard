@@ -17,8 +17,57 @@
     params: {},
     query: '',
     liveSport: null,
-    myTeam: readMyTeam()
+    myTeam: readMyTeam(),
+    slides: KO.config.PHOTOS.slides.map(function (p) { return { url: KO.config.photoUrl(p, 'w2000'), bad: false }; }),
+    slide: 0
   };
+
+  // ---------------------------------------------------------------------------
+  // Hero slideshow: preload, skip photos that fail, advance every 6 s.
+  // Only the slide classes change, so live score re-renders don't restart it.
+  // ---------------------------------------------------------------------------
+
+  state.slides.forEach(function (x, i) {
+    var img = new Image();
+    img.onerror = function () {
+      x.bad = true;
+      if (state.slide === i) showSlide(1); else updateSlideDom();
+    };
+    // load the first two right away, the rest a little later
+    setTimeout(function () { img.src = x.url; }, i < 2 ? 0 : 1500 + i * 300);
+  });
+
+  function showSlide(dir) {
+    var n = state.slides.length;
+    for (var step = 1; step <= n; step++) {
+      var i = (state.slide + dir * step + n * step) % n;
+      if (!state.slides[i].bad) { state.slide = i; break; }
+    }
+    updateSlideDom();
+  }
+
+  function updateSlideDom() {
+    var slides = doc.querySelectorAll('.hero-slide');
+    if (!slides.length) return;
+    slides.forEach(function (el) {
+      var i = +el.getAttribute('data-i');
+      el.classList.toggle('on', i === state.slide);
+      el.classList.toggle('bad', state.slides[i].bad);
+    });
+    var ok = state.slides.filter(function (x) { return !x.bad; });
+    var count = doc.querySelector('.hero-count b');
+    if (count) {
+      var pos = ok.indexOf(state.slides[state.slide]) + 1;
+      count.textContent = (pos < 10 ? '0' : '') + pos;
+      count.parentNode.childNodes[1].textContent = ' / ' + (ok.length < 10 ? '0' : '') + ok.length + ' ';
+    }
+  }
+
+  var reduceMotion = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setInterval(function () {
+    if (reduceMotion || doc.hidden || state.page !== 'home') return;
+    showSlide(1);
+  }, 6000);
 
   // My Team lives in this browser only. Storage can be blocked (private mode) —
   // the site still works, it just won't remember.
@@ -123,6 +172,8 @@
     var action = el.getAttribute('data-action');
     if (action === 'go') {
       root.location.hash = el.getAttribute('data-href');
+    } else if (action === 'slide') {
+      showSlide(+el.getAttribute('data-dir'));
     } else if (action === 'live-sport') {
       state.liveSport = el.getAttribute('data-sport');
       render();

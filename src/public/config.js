@@ -80,14 +80,30 @@
     ]
   };
 
-  // Photos. `hero` is a local file (from the 2027 homepage design). The sport photos
-  // come from the organizers' Google Drive archive (2026) and only load if that folder
-  // is shared publicly — otherwise cards fall back to the plain brand background.
+  // Photos. Google Drive file ids from the organizers' 2026 photo folder ("cam 2",
+  // https://drive.google.com/drive/folders/1xI2N1oOH2fQ8Ce8cs1F-v4EKGKHPKIg4).
+  // They only load while that folder is shared "anyone with the link"; a photo that
+  // fails to load is skipped. A path like 'assets/photos/x.jpg' uses a local file.
   var PHOTOS = {
-    hero: 'assets/photos/hero-volleyball.jpg',
-    soccer: '1IHvB456wjzb6wJwHB6UL7-M_RCzvdF16',
-    basketball: '1YHc5xBV68wlAaVaMvuOxLUG5IvjGp1vm',
-    volleyball: '1a0VuekY97k_ffwvVXCDgEnrBxHOQeLqw'
+    // Home page hero slideshow, in order (crossfades every 6 s)
+    slides: [
+      '1UTNg4d2orK2kY3G4RZ_iRk4sU4v1kL6j', // IMG_0582 soccer
+      '1os9GoXrKh44ZhqLbzRQ6AfA15hYeklxd', // IMG_1034 volleyball block
+      '1IY3ZKwGMTKsc1hC4TCmcXQc_jIX-3XtG', // IMG_1505 basketball
+      '1hmGhFeMcMA0VUjGWl7zUbUTb06tFst77', // IMG_0484 soccer
+      '1l211Iv1HEV1NG8gwd187hPc0ievUDEPa', // IMG_1208 volleyball at the net
+      '12Mg_OHIk9TRwIBXE9ysTbJOKKbw1iLdj', // IMG_0760 gym
+      '13tvElyLsdSKCVCFZHe5ziSuHMU7tZhGT', // IMG_0607 soccer
+      '1uQGsoEyOPYmIvipz9rrBEGPLLI4mc9AK', // IMG_1158 volleyball
+      '1G2JZ-TCe8VzvF-VjIA47Tyk3kE1y0_xz', // IMG_1529 basketball
+      '15oEq2IZE0xECd3we46S1JJmJmCfFWIif', // IMG_0932 community
+      '1LzzfHIunhWMaW1U4scrO3axauzWASa0r', // IMG_0557 soccer
+      '1tewwz-anWi3QCaNJ6HkDglC_CP-r1YxU', // IMG_1184 team
+      'assets/photos/hero-volleyball.jpg'  // from the 2027 homepage design
+    ],
+    soccer: '1UTNg4d2orK2kY3G4RZ_iRk4sU4v1kL6j',
+    basketball: '1IY3ZKwGMTKsc1hC4TCmcXQc_jIX-3XtG',
+    volleyball: '1os9GoXrKh44ZhqLbzRQ6AfA15hYeklxd'
   };
   function photoUrl(idOrPath, size) {
     if (/[\/.]/.test(idOrPath)) {

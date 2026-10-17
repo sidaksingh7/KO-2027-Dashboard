@@ -62,17 +62,29 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
 
 /* ---------- Hero (2027 homepage) ---------- */
 .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
-.hero-bg {
-  position: absolute; inset: 0;
-  background: var(--photo) 70% 30% / cover no-repeat, var(--bg-2);
+.hero-slides { position: absolute; inset: 0; background: var(--bg-2); }
+.hero-slide {
+  position: absolute; inset: 0; background: center 35% / cover no-repeat;
+  opacity: 0; transform: scale(1.06);
+  transition: opacity 1.4s ease, transform 7s linear;
 }
-.hero-bg::after {
-  content: ''; position: absolute; inset: 0;
+.hero-slide.on { opacity: 1; transform: scale(1); }
+.hero-slide.bad { display: none; }
+.hero-shade {
+  position: absolute; inset: 0; pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(5, 11, 28, .96) 0%, rgba(5, 11, 28, .78) 45%, rgba(5, 11, 28, .25) 100%),
-    linear-gradient(0deg, var(--bg) 0%, rgba(5, 11, 28, 0) 40%),
-    radial-gradient(60% 50% at 95% 10%, rgba(227, 180, 90, .25), transparent 70%);
+    linear-gradient(90deg, rgba(5, 11, 28, .95) 0%, rgba(5, 11, 28, .75) 42%, rgba(5, 11, 28, .2) 100%),
+    linear-gradient(0deg, var(--bg) 0%, rgba(5, 11, 28, 0) 38%),
+    radial-gradient(60% 50% at 95% 10%, rgba(227, 180, 90, .22), transparent 70%);
 }
+.hero-nav { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 18px; }
+.hero-count { font-size: 14px; color: var(--text-2); letter-spacing: .06em; }
+.hero-count b { color: var(--gold); font: 400 22px/1 var(--font-display); }
+.hero-count span { margin-left: 10px; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+.hero-arrows { display: flex; gap: 8px; }
+.hero-arrows button { width: 42px; height: 42px; border: 1.5px solid var(--gold); border-radius: 50%; background: rgba(5, 11, 28, .5); color: var(--gold); font-size: 18px; }
+.hero-arrows button:hover { background: var(--gold); color: var(--on-gold); }
+@media (max-width: 560px) { .hero-count span { display: none; } }
 .hero-inner { position: relative; padding-top: 48px; padding-bottom: 40px; }
 .hero-ed { font-size: 15px; letter-spacing: .4em; }
 .hero-title { margin: 10px 0 8px; font: 400 clamp(64px, 17vw, 128px)/.86 var(--font-display); text-transform: uppercase; }

@@ -150,6 +150,27 @@
     return 'Thank you for an incredible ' + C.EVENT.year;
   }
 
+  // Crossfading photo slideshow behind the hero. app.js advances state.slide
+  // and skips photos that fail to load; re-renders keep the current photo.
+  function heroSlides(state) {
+    var slides = state.slides || [];
+    return '<div class="hero-slides" aria-hidden="true">' + slides.map(function (x, i) {
+      return '<div class="hero-slide' + (i === state.slide ? ' on' : '') + (x.bad ? ' bad' : '') + '" data-i="' + i + '" ' +
+        'style="background-image:url(\'' + esc(x.url) + '\')"></div>';
+    }).join('') + '</div><div class="hero-shade"></div>';
+  }
+
+  function heroNav(state) {
+    var slides = state.slides || [];
+    var ok = slides.filter(function (x) { return !x.bad; });
+    var pos = Math.max(0, ok.indexOf(slides[state.slide]));
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return (ok.length > 1 ? '<div class="hero-nav wrap"><span class="hero-count"><b>' + pad(pos + 1) + '</b> / ' + pad(ok.length) +
+      ' <span>Moments from the games</span></span>' +
+      '<span class="hero-arrows"><button data-action="slide" data-dir="-1" aria-label="Previous photo">←</button>' +
+      '<button data-action="slide" data-dir="1" aria-label="Next photo">→</button></span></div>' : '');
+  }
+
   function home(state) {
     var E = C.EVENT;
     var now = state.store.now();
@@ -158,7 +179,7 @@
 
     var hero =
       '<section class="hero">' +
-        '<div class="hero-bg" style="--photo:url(\'' + esc(C.photoUrl(C.PHOTOS.hero)) + '\')"></div>' +
+        heroSlides(state) +
         '<div class="wrap hero-inner">' +
           '<div class="kicker hero-ed">' + esc(E.edition) + '</div>' +
           '<h1 class="hero-title"><span>' + esc(E.name.split(' ')[0]) + '</span>' +
@@ -176,6 +197,7 @@
             '<li><span class="pi">✦</span><b>Community</b><small>A brighter tomorrow</small></li>' +
           '</ul>' +
         '</div>' +
+        heroNav(state) +
       '</section>';
 
     var all = H.allGames(state.store.views, focusSport);
