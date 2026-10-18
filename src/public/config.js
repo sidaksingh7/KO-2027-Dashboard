@@ -104,7 +104,7 @@
     // Sport cards. { id, pos } sets the crop (CSS background-position) for portrait photos.
     soccer: { id: '1uJKd6r48QYPdeCWwLs3XwlYbfIunS6q3', pos: '50% 72%' }, // IMG_0469 #24 dribbling
     basketball: '1IY3ZKwGMTKsc1hC4TCmcXQc_jIX-3XtG',
-    volleyball: '1os9GoXrKh44ZhqLbzRQ6AfA15hYeklxd'
+    volleyball: { id: '1P8dp8gpAIucrnDm75lKbohb11Z3CB306', pos: '50% 52%' } // IMG_1139 spike
   };
   function photoUrl(idOrPath, size) {
     if (/[\/.]/.test(idOrPath)) {
@@ -116,6 +116,29 @@
   }
 
   root.KO = root.KO || {};
+  // Special Guests page (#guests). photo: Drive id or local path; pos + zoom: crop.
+  // Names come from the award plaques presented at Khalsa Olympics 2026.
+  var GUEST_PHOTO_2026 = '1IHvB456wjzb6wJwHB6UL7-M_RCzvdF16'; // IMG: award presentation, 2026
+  var GUESTS = [
+    {
+      name: 'The Honourable Ruby Sahota',
+      role: 'Member of Parliament, Brampton North', // TODO confirm current title
+      note: 'Honoured in 2026 for outstanding support, leadership and dedication to the success of Khalsa Olympics.',
+      photo: GUEST_PHOTO_2026, pos: '24% 13%', zoom: '210%'
+    },
+    {
+      name: 'Councillor Navjit Kaur Brar',
+      role: 'City Councillor, Brampton', // TODO confirm wards
+      note: 'Honoured in 2026 for outstanding support, leadership and dedication to the success of Khalsa Olympics.',
+      photo: GUEST_PHOTO_2026, pos: '80% 15%', zoom: '210%'
+    }
+  ];
+  // Media & production partners shown on the same page. Add logo: 'assets/partners/x.png'.
+  var MEDIA_PARTNERS = [
+    { name: 'AKTV', role: 'Media partner', logo: null },           // TODO logo + description
+    { name: 'Fair All Sound', role: 'Sound & production', logo: null } // TODO confirm spelling + logo
+  ];
+
   // 2026 sponsors (from the 2027 homepage design) — thanked on the Info page.
   var PARTNERS_2026 = [
     'Jaswant Singh Khalra Khalsa School', 'Cycom Technology Solutions', 'HB Accounting & Tax Services',
@@ -126,6 +149,7 @@
 
   root.KO.config = {
     EVENT: EVENT, SPORTS: SPORTS, CHAMPIONS: CHAMPIONS, LAST_YEAR: LAST_YEAR,
-    PARTNERS_2026: PARTNERS_2026, PHOTOS: PHOTOS, photoUrl: photoUrl
+    PARTNERS_2026: PARTNERS_2026, PHOTOS: PHOTOS, photoUrl: photoUrl,
+    GUESTS: GUESTS, GUEST_PHOTO_2026: GUEST_PHOTO_2026, MEDIA_PARTNERS: MEDIA_PARTNERS
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -23,7 +23,7 @@
   };
 
   // ---------------------------------------------------------------------------
-  // Hero slideshow: preload, skip photos that fail, advance every 6 s.
+  // Hero slideshow: preload, skip photos that fail, advance every 3 s.
   // Only the slide classes change, so live score re-renders don't restart it.
   // ---------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@
       if (state.slide === i) showSlide(1); else updateSlideDom();
     };
     // load the first two right away, the rest a little later
-    setTimeout(function () { img.src = x.url; }, i < 2 ? 0 : 1500 + i * 300);
+    setTimeout(function () { img.src = x.url; }, i < 2 ? 0 : 800 + i * 250);
   });
 
   function showSlide(dir) {
@@ -67,7 +67,7 @@
   setInterval(function () {
     if (reduceMotion || doc.hidden || state.page !== 'home') return;
     showSlide(1);
-  }, 6000);
+  }, 3000);
 
   // My Team lives in this browser only. Storage can be blocked (private mode) —
   // the site still works, it just won't remember.
@@ -87,6 +87,7 @@
     ['schedule', 'Schedule', '#schedule'],
     ['playoffs', 'Playoffs', '#playoffs'],
     ['info', 'Info', '#info'],
+    ['guests', 'Guests', '#guests'],
     ['myteam', 'My Team', '#myteam']
   ];
 
@@ -114,6 +115,7 @@
       case 'team': html = V.team(state, state.params.team); break;
       case 'myteam': html = V.myTeam(state); break;
       case 'info': html = V.info(state); break;
+      case 'guests': html = V.guests(state); break;
       default: html = V.home(state);
     }
     var app = doc.getElementById('app');
@@ -154,7 +156,7 @@
 
   function pageTitle() {
     var base = 'Khalsa Olympics 2027';
-    var names = { schedule: 'Schedule', playoffs: 'Playoffs', info: 'Info', myteam: 'My Team' };
+    var names = { schedule: 'Schedule', playoffs: 'Playoffs', info: 'Info', myteam: 'My Team', guests: 'Special Guests' };
     if (state.page === 'team' && state.store && state.store.views) {
       var t = H.findTeam(state.store.views, state.params.team);
       if (t) return t.name + ' · ' + base;

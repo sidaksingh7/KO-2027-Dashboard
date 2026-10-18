@@ -559,7 +559,39 @@
       '</div></div>';
   }
 
+  // ---------------------------------------------------------------------------
+  // Special guests
+  // ---------------------------------------------------------------------------
+
+  function guests() {
+    var cards = C.GUESTS.map(function (g) {
+      return '<article class="guest card">' +
+        '<div class="guest-photo" role="img" aria-label="' + esc(g.name) + '" style="--photo:url(\'' + esc(C.photoUrl(g.photo, 'w1600')) + '\');--pos:' + esc(g.pos || 'center') + ';--zoom:' + esc(g.zoom || 'cover') + '"></div>' +
+        '<div class="guest-body"><h3>' + esc(g.name) + '</h3><div class="guest-role">' + esc(g.role) + '</div><p>' + esc(g.note) + '</p></div>' +
+      '</article>';
+    }).join('');
+    var partners = C.MEDIA_PARTNERS.map(function (m) {
+      var initials = m.name.split(/\s+/).map(function (w) { return w.charAt(0); }).join('').slice(0, 3);
+      return '<div class="media-partner card">' +
+        '<span class="mp-logo' + (m.logo ? ' has-logo' : '') + '"' + (m.logo ? ' style="background-image:url(\'' + esc(C.photoUrl(m.logo)) + '\')"' : '') + '>' + esc(initials) + '</span>' +
+        '<div><b>' + esc(m.name) + '</b><span>' + esc(m.role) + '</span></div></div>';
+    }).join('');
+    return '<div class="wrap page">' +
+      '<div class="kicker">With gratitude</div><h1 class="display">Special guests</h1>' +
+      '<p class="lead">Leaders and friends of the community who support Khalsa Olympics.</p>' +
+      '<section class="guests-hero">' +
+        '<figure class="guests-photo" style="background-image:url(\'' + esc(C.photoUrl(C.GUEST_PHOTO_2026, 'w1600')) + '\')">' +
+          '<figcaption><b>Khalsa Olympics 2026</b>' + esc(C.GUESTS.map(function (g) { return g.name; }).join(' and ')) +
+          ' receiving awards for their support of the tournament.</figcaption></figure>' +
+        '<div class="guest-cards">' + cards + '</div>' +
+      '</section>' +
+      '<h2 class="display-sm">Media &amp; production</h2>' +
+      '<div class="media-partners">' + partners + '</div>' +
+    '</div>';
+  }
+
   KO.views = {
+    guests: guests,
     home: home,
     schedule: schedule,
     playoffs: playoffs,
