@@ -43,14 +43,23 @@
     return (state.timers[g.sport] && state.timers[g.sport][g.division] && state.timers[g.sport][g.division][g.id]) || null;
   }
 
-  function start() {
+  // Demo data only when forced (?demo=1) or when the in-browser sandbox is empty.
+  // With real Firebase we never read the whole tree: the security rules only
+  // allow reading each division's live/published, so that read would be refused.
+  function decideDemo(cb) {
+    var forced = /[?&]demo=([01])/.exec(root.location.search);
+    if (forced) return cb(forced[1] === '1');
+    if (KO.mode !== 'sandbox') return cb(false);
     KO.db.ref('ko2027').once('value').then(function (snap) {
       var tree = snap.val() || {};
-      var anyLive = H.SPORT_ORDER.some(function (s) {
+      cb(!H.SPORT_ORDER.some(function (s) {
         return tree[s] && H.DIVISION_ORDER.some(function (d) { return tree[s][d] && tree[s][d].live; });
-      });
-      var forced = /[?&]demo=([01])/.exec(root.location.search);
-      var useDemo = forced ? forced[1] === '1' : (KO.mode === 'sandbox' && !anyLive);
+      }));
+    });
+  }
+
+  function start() {
+    decideDemo(function (useDemo) {
       if (useDemo) {
         var demo = KO.demo.build();
         var loadedAt = Date.now();
