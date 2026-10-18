@@ -160,7 +160,7 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
   background:
     linear-gradient(180deg, rgba(5, 11, 28, .8) 0%, rgba(5, 11, 28, 0) 28%),
     linear-gradient(0deg, rgba(5, 11, 28, .95) 10%, rgba(5, 11, 28, .2) 75%),
-    var(--photo) center / cover no-repeat, linear-gradient(135deg, #12245A, #0B1631);
+    var(--photo) var(--pos, center) / cover no-repeat, linear-gradient(135deg, #12245A, #0B1631);
   transition: border-color .2s var(--ease), transform .2s var(--ease);
 }
 .sport-card:hover { border-color: var(--gold); transform: translateY(-2px); }

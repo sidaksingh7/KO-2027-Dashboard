@@ -228,7 +228,8 @@
         '<div class="sport-cards">' +
           H.SPORT_ORDER.map(function (s, i) {
             var d = dayFor(s);
-            return '<a class="sport-card" href="' + href('schedule', { sport: s }) + '" style="--photo:url(\'' + esc(C.photoUrl(C.PHOTOS[s], 'w1000')) + '\')">' +
+            var photo = C.PHOTOS[s];
+            return '<a class="sport-card" href="' + href('schedule', { sport: s }) + '" style="--photo:url(\'' + esc(C.photoUrl(photo.id || photo, 'w1200')) + '\');--pos:' + esc(photo.pos || 'center') + '">' +
               '<span class="sc-num">0' + (i + 1) + ' / ' + esc(d.label) + ' · ' + esc(shortDate(s)) + '</span>' +
               icon(s) +
               '<h3>' + esc(sportName(s)) + '</h3>' +

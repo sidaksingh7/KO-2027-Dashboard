@@ -101,7 +101,8 @@
       '1tewwz-anWi3QCaNJ6HkDglC_CP-r1YxU', // IMG_1184 team
       'assets/photos/hero-volleyball.jpg'  // from the 2027 homepage design
     ],
-    soccer: '1UTNg4d2orK2kY3G4RZ_iRk4sU4v1kL6j',
+    // Sport cards. { id, pos } sets the crop (CSS background-position) for portrait photos.
+    soccer: { id: '1uJKd6r48QYPdeCWwLs3XwlYbfIunS6q3', pos: '50% 72%' }, // IMG_0469 #24 dribbling
     basketball: '1IY3ZKwGMTKsc1hC4TCmcXQc_jIX-3XtG',
     volleyball: '1os9GoXrKh44ZhqLbzRQ6AfA15hYeklxd'
   };
