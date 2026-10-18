@@ -157,11 +157,14 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
 .sport-card {
   position: relative; min-height: 240px; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end;
   border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden;
-  background: linear-gradient(0deg, rgba(5, 11, 28, .95) 10%, rgba(5, 11, 28, .2) 75%), var(--photo) center / cover no-repeat, linear-gradient(135deg, #12245A, #0B1631);
+  background:
+    linear-gradient(180deg, rgba(5, 11, 28, .8) 0%, rgba(5, 11, 28, 0) 28%),
+    linear-gradient(0deg, rgba(5, 11, 28, .95) 10%, rgba(5, 11, 28, .2) 75%),
+    var(--photo) center / cover no-repeat, linear-gradient(135deg, #12245A, #0B1631);
   transition: border-color .2s var(--ease), transform .2s var(--ease);
 }
 .sport-card:hover { border-color: var(--gold); transform: translateY(-2px); }
-.sport-card .sc-num { position: absolute; top: 16px; left: 20px; color: var(--gold); font: 600 12px/1 var(--font-ui); letter-spacing: .2em; text-transform: uppercase; }
+.sport-card .sc-num { position: absolute; top: 16px; left: 20px; color: var(--gold); font: 600 12px/1 var(--font-ui); letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
 .sport-card .sport-icon { width: 34px; height: 34px; color: var(--cream); margin-bottom: 8px; }
 .sport-card h3 { font: 400 40px/1 var(--font-display); letter-spacing: .02em; text-transform: uppercase; }
 .sport-card p { color: var(--text-2); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
