@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ko2027-static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8027"],
+      "port": 8027
+    }
+  ]
+}
