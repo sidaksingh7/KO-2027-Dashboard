@@ -131,4 +131,77 @@ test('volleyball finalize needs a set lead', () => {
   assert.ok(S.finalize(vb({ setsWon1: 1, setsWon2: 0 })).patch);
 });
 
+// --- player-credited scoring events ---------------------------------------------
+
+test('scoreEvent needs a player, adds points and records who scored', () => {
+  const g = game({ status: 'live' });
+  assert.match(S.scoreEvent(g, 1, 2, {}).error, /Pick the player/);
+  const g2 = run(g, S.scoreEvent(g, 1, 3, { playerId: 'p24', at: 5 }));
+  assert.equal(g2.score1, 3);
+  assert.deepEqual(g2.events, [{ side: 1, pts: 3, kind: 'pts', playerId: 'p24', at: 5 }]);
+  assert.match(S.scoreEvent(game(), 1, 2, { playerId: 'x' }).error, /Start the game/);
+  assert.match(S.scoreEvent(g, 1, 4, { playerId: 'x' }).error, /1, 2 or 3/);
+});
+
+test('soccer goals and cards', () => {
+  const g = game({ sport: 'soccer', status: 'live' });
+  const g2 = run(g, S.scoreEvent(g, 2, 1, { playerId: 'p9' }));
+  assert.equal(g2.score2, 1);
+  assert.equal(g2.events[0].kind, 'goal');
+  const g3 = run(g2, S.cardEvent(g2, 1, 'yellow', 'p4', 7));
+  assert.equal(g3.score1, 0);
+  assert.equal(g3.events[1].kind, 'yellow');
+  assert.match(S.cardEvent(g2, 1, 'blue', 'p4').error, /yellow or red/);
+  assert.match(S.cardEvent(game({ status: 'live' }), 1, 'red', 'p4').error, /for soccer/);
+});
+
+test('volleyball: kill/ace/block need a player, opponent error does not; set is recorded', () => {
+  const g = vb({ currentSet: 2 });
+  assert.match(S.scoreEvent(g, 1, 1, { kind: 'ace' }).error, /Pick the player/);
+  const g2 = run(g, S.scoreEvent(g, 1, 1, { kind: 'opp-error' }));
+  assert.equal(g2.events[0].playerId, null);
+  assert.equal(g2.events[0].set, 2);
+  const g3 = run(g2, S.scoreEvent(g2, 2, 1, { kind: 'block', playerId: 'v7' }));
+  assert.equal(g3.score2, 1);
+  assert.match(S.scoreEvent(g, 1, 1, { kind: 'spike', playerId: 'v7' }).error, /Unknown/);
+});
+
+test('undoLastScore removes that side\'s last point and its player credit', () => {
+  let g = game({ status: 'live' });
+  g = run(g, S.scoreEvent(g, 1, 2, { playerId: 'a' }));
+  g = run(g, S.scoreEvent(g, 2, 3, { playerId: 'b' }));
+  g = run(g, S.scoreEvent(g, 1, 3, { playerId: 'c' }));
+  g = run(g, S.undoLastScore(g, 1));
+  assert.equal(g.score1, 2);
+  assert.deepEqual(g.events.map((e) => e.playerId), ['a', 'b']);
+});
+
+test('undoLastScore in volleyball only touches the current set', () => {
+  const g = vb({ score1: 0, currentSet: 2, events: [{ side: 1, pts: 1, kind: 'ace', playerId: 'x', set: 1 }] });
+  // nothing scored by side 1 in set 2 → set 1's ace is left alone, plain −1 refuses at 0
+  assert.match(S.undoLastScore(g, 1).error, /already 0/);
+});
+
+test('undoLastScore falls back to −1 when the score was typed in', () => {
+  const g = game({ status: 'live', score1: 5 });
+  assert.deepEqual(S.undoLastScore(g, 1).patch, { score1: 4 });
+});
+
+test('removeEvent deletes one entry and its points', () => {
+  let g = game({ sport: 'soccer', status: 'live' });
+  g = run(g, S.scoreEvent(g, 1, 1, { playerId: 'a' }));
+  g = run(g, S.cardEvent(g, 2, 'red', 'b'));
+  g = run(g, S.removeEvent(g, 0));
+  assert.equal(g.score1, 0);
+  assert.deepEqual(g.events.map((e) => e.kind), ['red']);
+  assert.match(S.removeEvent(g, 9).error, /no longer exists/);
+});
+
+test('events stored by Firebase as an object still work', () => {
+  const g = game({ status: 'live', score1: 2, events: { 0: { side: 1, pts: 2, kind: 'pts', playerId: 'a' } } });
+  const r = S.undoLastScore(g, 1).patch;
+  assert.equal(r.score1, 0);
+  assert.deepEqual(r.events, []);
+});
+
 console.log(`\n${passed} passed`);

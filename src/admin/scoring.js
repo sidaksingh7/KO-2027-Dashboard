@@ -48,6 +48,86 @@
     return ok({ score1: s1, score2: s2 });
   }
 
+  // ---------------------------------------------------------------------------
+  // Scoring events: every point (and soccer card) records WHO did it, for stats.
+  //   event = { side: 1|2, pts, kind, playerId|null, set? , at }
+  //   kind: soccer 'goal' | 'yellow' | 'red'; basketball 'pts';
+  //         volleyball 'kill' | 'ace' | 'block' | 'opp-error' (no player)
+  // ---------------------------------------------------------------------------
+
+  var VB_KINDS = ['kill', 'ace', 'block', 'opp-error'];
+
+  function eventsArray(game) {
+    var e = game.events || [];
+    if (!Array.isArray(e)) e = Object.keys(e).sort(function (a, b) { return a - b; }).map(function (k) { return e[k]; });
+    return e.filter(Boolean);
+  }
+
+  // A point (or points) for one side, credited to a player.
+  //   opts = { playerId, kind, at }
+  function scoreEvent(game, side, pts, opts) {
+    opts = opts || {};
+    if (game.status !== 'live') return err('Start the game before scoring');
+    var key = sideKey(side);
+    if (!(pts >= 1 && pts <= 3) || pts % 1) return err('Points must be 1, 2 or 3');
+    var sport = game.sport;
+    var kind = opts.kind || (sport === 'soccer' ? 'goal' : sport === 'volleyball' ? 'kill' : 'pts');
+    if (sport === 'volleyball' && VB_KINDS.indexOf(kind) === -1) return err('Unknown volleyball point type');
+    if (sport === 'soccer' && kind !== 'goal') return err('Use a card action for cards');
+    var player = kind === 'opp-error' ? null : (opts.playerId || null);
+    if (!player && kind !== 'opp-error') return err('Pick the player who scored');
+    var ev = { side: side, pts: pts, kind: kind, playerId: player, at: opts.at || 0 };
+    if (sport === 'volleyball') ev.set = game.currentSet || (setsArray(game).filter(function (x) { return x.done; }).length + 1);
+    var patch = {};
+    patch[key] = (game[key] || 0) + pts;
+    patch.events = eventsArray(game).concat([ev]);
+    return ok(patch);
+  }
+
+  // Soccer yellow / red card for a player (no score change).
+  function cardEvent(game, side, color, playerId, at) {
+    if (game.sport !== 'soccer') return err('Cards are for soccer');
+    if (game.status !== 'live') return err('Start the game first');
+    sideKey(side);
+    if (color !== 'yellow' && color !== 'red') return err('Card must be yellow or red');
+    if (!playerId) return err('Pick the player');
+    return ok({ events: eventsArray(game).concat([{ side: side, pts: 0, kind: color, playerId: playerId, at: at || 0 }]) });
+  }
+
+  // −1: removes that side's most recent scoring event (and its points). In
+  // volleyball only events from the current set count. Falls back to a plain
+  // −1 if the score was typed in without events.
+  function undoLastScore(game, side) {
+    if (game.status !== 'live') return err('Start the game before scoring');
+    var key = sideKey(side);
+    var events = eventsArray(game);
+    var cur = game.sport === 'volleyball' ? (game.currentSet || 1) : null;
+    for (var i = events.length - 1; i >= 0; i--) {
+      var e = events[i];
+      if (e.side === side && e.pts > 0 && (cur === null || e.set === cur)) {
+        var patch = {};
+        patch[key] = Math.max(0, (game[key] || 0) - e.pts);
+        patch.events = events.slice(0, i).concat(events.slice(i + 1));
+        return ok(patch);
+      }
+    }
+    return addPoints(game, side, -1);
+  }
+
+  // Remove one specific event (e.g. a card given by mistake).
+  function removeEvent(game, index) {
+    var events = eventsArray(game);
+    var e = events[index];
+    if (!e) return err('That entry no longer exists');
+    var patch = { events: events.slice(0, index).concat(events.slice(index + 1)) };
+    var cur = game.sport === 'volleyball' ? (game.currentSet || 1) : null;
+    if (e.pts > 0 && (cur === null || e.set === cur)) {
+      var key = sideKey(e.side);
+      patch[key] = Math.max(0, (game[key] || 0) - e.pts);
+    }
+    return ok(patch);
+  }
+
   function setsArray(game) {
     // Firebase may hand arrays back as objects {0:…,1:…}
     var s = game.sets || [];
@@ -159,7 +239,13 @@
     clearForfeit: clearForfeit,
     reopen: reopen,
     applyPatch: applyPatch,
-    setsArray: setsArray
+    setsArray: setsArray,
+    eventsArray: eventsArray,
+    scoreEvent: scoreEvent,
+    cardEvent: cardEvent,
+    undoLastScore: undoLastScore,
+    removeEvent: removeEvent,
+    VB_KINDS: VB_KINDS
   };
 
   if (typeof module !== 'undefined' && module.exports) {

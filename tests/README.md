@@ -43,4 +43,5 @@ Each file prints `ok` per test and `N passed` at the end; a failure stops with t
 | integration.test.js | Schedule → results → standings → seeds → bracket champion |
 | public-helpers.test.js | Public page helpers: team search, Toronto times, division views, routing |
 | local-db.test.js | Sandbox database (the Firebase stand-in used before config is pasted) |
-| scoring.test.js | Scorekeeper actions: points, volleyball sets, finals, playoff ties, forfeits |
+| scoring.test.js | Scorekeeper actions: points, volleyball sets, finals, playoff ties, forfeits, player-credited scoring |
+| stats.test.js | Team stats, player leaderboards, box scores, roster parsing |
