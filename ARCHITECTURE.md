@@ -30,7 +30,7 @@ ko2027/
   event/banner                   { text, level } shown on public site + TVs
   {sport}/{division}/            sport = soccer | basketball | volleyball, division = d1 | d2 | d3
     live/                        admin writes here; TVs + admin read here
-      teams/{teamId}             { name, group? }   group 'A'|'B' for soccer
+      teams/{teamId}             { name, group?, roster: { playerId: { name, number } } }
       games/{gameId}             game (below), with updatedAt per field
       timers/{gameId}            timer (src/shared/timer.js)
       dq/{teamId}: true
@@ -156,6 +156,7 @@ schedule-gen  ──games──▶  (scorekeeper enters results)  ──▶  sta
   winnerId,                      // scorekeeper's pick for a tie (soccer penalties)
   forfeitBy: 1 | 2,              // no-show in one game
   court, slot, startsAt, endsAt  // from assignSlots
+  events: [ { side, pts, kind, playerId, set?, at } ],   // who scored each point (see Stats)
   updatedAt: { field: ms }       // one stamp per changed field (scoring.applyPatch)
 }
 ```
@@ -212,6 +213,22 @@ be changed from several places. Now:
   and teams entered in two sports on the same day. Admin will be able to edit games by hand.
 
 ---
+
+### Player & team stats (`stats.js`)
+- Every team has a **roster** (admin → Teams → Roster: paste `24 Sandhu` per line). Rosters
+  are published with the teams.
+- Every point is recorded with **who scored** (`events` on the game). Tapping +1/+2/+3 opens a
+  player picker; a player is required, except volleyball **Opponent error**.
+  - Soccer: `goal`, `yellow`, `red` · Basketball: `pts` 1/2/3 · Volleyball: `kill`, `ace`,
+    `block`, `opp-error`. −1 removes that side's last point and its credit.
+- `KO.stats.teamStats / playerStats / boxScore` derive everything from games + events, so
+  public Stats, team pages and box scores never disagree with the score.
+- Public: **Stats** tab (Players | Teams, sport, division, search), **Box score** link on every
+  played game, Players section with leader cards on team pages.
+
+### Practice mode
+Add `?sandbox=1` to any page (e.g. `admin.html?sandbox=1`) to use the in-browser sandbox
+instead of the real database — for training scorekeepers and testing. Nothing reaches Firebase.
 
 ## Testing
 

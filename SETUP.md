@@ -73,6 +73,15 @@ Now: anyone can *read* scores (public site + TVs), only admins can *change* anyt
 | TV laptop | `tv.html` → pick a screen → full screen (F11) | Nothing — it updates itself |
 | Spectators | the site address | Search their team |
 
+**Before game day:** paste every team's players in admin → Teams → **Roster**
+(one per line, number first: `24 Sandhu`), then Publish. A team without a roster can't be scored.
+
+**Scoring:** tap +1/+2/+3 (or a soccer card), then tap the player. Volleyball: pick Kill / Ace /
+Block, or **Opponent error** when the point came from the other team's mistake.
+Wrong entry? −1 removes the last point, or remove any entry under **Last plays**.
+
+**Practice:** `admin.html?sandbox=1` is a safe copy for training — nothing reaches the real site.
+
 **Volleyball:** score buttons count the current set → **End set** after each set → the match
 finishes itself when a team wins 2 sets.
 

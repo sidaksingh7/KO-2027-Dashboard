@@ -86,6 +86,7 @@
     ['home', 'Home', '#'],
     ['schedule', 'Schedule', '#schedule'],
     ['playoffs', 'Playoffs', '#playoffs'],
+    ['stats', 'Stats', '#stats'],
     ['info', 'Info', '#info'],
     ['guests', 'Guests', '#guests'],
     ['myteam', 'My Team', '#myteam']
@@ -116,19 +117,22 @@
       case 'myteam': html = V.myTeam(state); break;
       case 'info': html = V.info(state); break;
       case 'guests': html = V.guests(state); break;
+      case 'stats': html = V.stats(state); break;
+      case 'game': html = V.game(state, state.params.game); break;
       default: html = V.home(state);
     }
     var app = doc.getElementById('app');
 
     // Keep the search box usable if a score update arrives while someone types.
     var active = doc.activeElement;
-    var typing = active && active.id === 'team-search';
+    var typing = active && (active.id === 'team-search' || active.id === 'stats-search');
+    var typingId = typing ? active.id : null;
     var sel = typing ? [active.selectionStart, active.selectionEnd] : null;
 
     app.innerHTML = html;
 
     if (typing) {
-      var input = doc.getElementById('team-search');
+      var input = doc.getElementById(typingId);
       if (input) {
         input.focus();
         try { input.setSelectionRange(sel[0], sel[1]); } catch (e) { /* ignore */ }
@@ -145,10 +149,12 @@
 
   function route() {
     var r = H.parseHash(root.location.hash);
+    if (r.params.game) r.page = 'game';
     var changed = r.page !== state.page || JSON.stringify(r.params) !== JSON.stringify(state.params);
     state.page = r.page;
     state.params = r.params;
-    if (changed) state.query = '';
+    if (changed) { state.query = ''; }
+    if (changed && r.page !== 'stats') { state.statsQuery = ''; state.statsLimit = 25; }
     render();
     if (changed) root.scrollTo(0, 0);
     doc.title = pageTitle();
@@ -156,7 +162,7 @@
 
   function pageTitle() {
     var base = 'Khalsa Olympics 2027';
-    var names = { schedule: 'Schedule', playoffs: 'Playoffs', info: 'Info', myteam: 'My Team', guests: 'Special Guests' };
+    var names = { schedule: 'Schedule', playoffs: 'Playoffs', info: 'Info', myteam: 'My Team', guests: 'Special Guests', stats: 'Stats', game: 'Box score' };
     if (state.page === 'team' && state.store && state.store.views) {
       var t = H.findTeam(state.store.views, state.params.team);
       if (t) return t.name + ' · ' + base;
@@ -174,6 +180,9 @@
     var action = el.getAttribute('data-action');
     if (action === 'go') {
       root.location.hash = el.getAttribute('data-href');
+    } else if (action === 'stats-more') {
+      state.statsLimit = (state.statsLimit || 25) + 50;
+      render();
     } else if (action === 'slide') {
       showSlide(+el.getAttribute('data-dir'));
     } else if (action === 'live-sport') {
@@ -187,6 +196,12 @@
   });
 
   doc.addEventListener('input', function (e) {
+    if (e.target.id === 'stats-search') {
+      state.statsQuery = e.target.value;
+      state.statsLimit = 25;
+      render(); // the search box keeps focus (see renderPage)
+      return;
+    }
     if (e.target.id !== 'team-search') return;
     state.query = e.target.value;
     // Only redraw the results list — not the whole page — while typing.

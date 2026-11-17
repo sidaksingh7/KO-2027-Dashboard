@@ -93,7 +93,8 @@
       '<div class="gr-time"><span class="t">' + clock(g.startsAt) + '</span>' +
         '<span class="c">' + esc(g.court || '') + '</span></div>' +
       '<div class="gr-main">' +
-        '<div class="gr-meta">' + esc(meta.join(' · ')) + ' ' + statusPill(g) + '</div>' +
+        '<div class="gr-meta">' + esc(meta.join(' · ')) + ' ' + statusPill(g) +
+          (g.status !== 'scheduled' && g.t1.known && g.t2.known ? ' <a class="box-link" href="' + href('game', { game: g.id }) + '">Box score ›</a>' : '') + '</div>' +
         '<div class="gr-team' + (win1 ? ' win' : '') + (hi && g.t1.id === hi ? ' mine' : '') + '">' + teamLink(g.t1) +
           (score ? '<b class="sc">' + esc(score[0]) + '</b>' : '') + '</div>' +
         '<div class="gr-team' + (win2 ? ' win' : '') + (hi && g.t2.id === hi ? ' mine' : '') + '">' + teamLink(g.t2) +
@@ -491,7 +492,9 @@
             gameRow(x.game, { showSport: false, showDivision: false, highlight: id }) + '</div>';
         }).join('') + '</div>' : '') +
       (!list.length ? '<p class="empty">No games scheduled yet.</p>' : '') +
-      '<p><a class="arrow-link" href="' + href('playoffs', { sport: t.sport, division: t.division }) + '">Standings &amp; bracket</a></p>' +
+      teamPlayers(view, id) +
+      '<p><a class="arrow-link" href="' + href('playoffs', { sport: t.sport, division: t.division }) + '">Standings &amp; bracket</a> · ' +
+      '<a class="arrow-link" href="' + href('stats', { sport: t.sport, view: 'players', division: t.division }) + '">Player stats</a></p>' +
     '</div>';
   }
 
@@ -590,7 +593,228 @@
     '</div>';
   }
 
+  // ---------------------------------------------------------------------------
+  // Stats (team + player), box scores, team players
+  // ---------------------------------------------------------------------------
+
+  function fmt1(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+  function signed(n) { return (n > 0 ? '+' : '') + n; }
+  function jersey(p) { return p.number !== '' && p.number != null ? '#' + p.number : ''; }
+
+  // Column sets per sport for player tables. [header, value fn, title]
+  function playerCols(sport) {
+    if (sport === 'soccer') return [
+      ['GP', function (p) { return p.gp; }, 'Games played'],
+      ['G', function (p) { return '<b>' + p.goals + '</b>'; }, 'Goals'],
+      ['YC', function (p) { return p.yellow; }, 'Yellow cards'],
+      ['RC', function (p) { return p.red; }, 'Red cards']
+    ];
+    if (sport === 'basketball') return [
+      ['GP', function (p) { return p.gp; }, 'Games played'],
+      ['PTS', function (p) { return '<b>' + p.pts + '</b>'; }, 'Points'],
+      ['PPG', function (p) { return fmt1(p.ppg); }, 'Points per game'],
+      ['3PM', function (p) { return p.fg3; }, '3-pointers made'],
+      ['2PM', function (p) { return p.fg2; }, '2-pointers made'],
+      ['FTM', function (p) { return p.ft; }, 'Free throws made'],
+      ['HI', function (p) { return p.high; }, 'Best single game']
+    ];
+    return [
+      ['GP', function (p) { return p.gp; }, 'Matches played'],
+      ['PTS', function (p) { return '<b>' + p.pts + '</b>'; }, 'Points (kills + aces + blocks)'],
+      ['K', function (p) { return p.kill; }, 'Kills'],
+      ['A', function (p) { return p.ace; }, 'Aces'],
+      ['B', function (p) { return p.block; }, 'Blocks'],
+      ['HI', function (p) { return p.high; }, 'Best single match']
+    ];
+  }
+
+  function playersTable(rows, sport, opts) {
+    opts = opts || {};
+    var cols = playerCols(sport);
+    if (!rows.length) return '<p class="empty">No players yet — rosters appear once teams are published.</p>';
+    return '<div class="table-scroll"><table class="stats-table"><thead><tr><th class="rk">#</th><th class="tm">Player</th>' +
+      cols.map(function (c) { return '<th title="' + esc(c[2]) + '">' + esc(c[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (p) {
+        return '<tr><td class="rk">' + p.rank + '</td><td class="tm"><span class="pname">' + (jersey(p) ? '<span class="jn">' + esc(jersey(p)) + '</span> ' : '') + esc(p.name) + '</span>' +
+          (opts.hideTeam ? '' : '<a class="psub" href="' + href('team', { team: p.teamId }) + '">' + esc(p.team) + (opts.showDiv ? ' · ' + esc(divName(p.division)) : '') + '</a>') + '</td>' +
+          cols.map(function (c) { return '<td>' + c[1](p) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function teamsTable(rows, sport) {
+    var vb = sport === 'volleyball', soccer = sport === 'soccer';
+    if (!rows.length) return '<p class="empty">No teams yet.</p>';
+    return '<div class="table-scroll"><table class="stats-table"><thead><tr><th class="rk">#</th><th class="tm">Team</th>' +
+      '<th title="Games played">GP</th><th>W</th><th>L</th>' + (soccer ? '<th>D</th>' : '') +
+      (vb ? '<th title="Sets won–lost">Sets</th>' : '') +
+      '<th title="' + (soccer ? 'Goals for' : 'Points for') + '">' + (soccer ? 'GF' : 'PF') + '</th>' +
+      '<th title="' + (soccer ? 'Goals against' : 'Points against') + '">' + (soccer ? 'GA' : 'PA') + '</th>' +
+      '<th>Diff</th><th title="' + (soccer ? 'Goals' : 'Points') + ' per game">' + (soccer ? 'GPG' : 'PPG') + '</th>' +
+      '<th>Form</th><th>Reached</th><th>Place</th></tr></thead><tbody>' +
+      rows.map(function (t) {
+        var place = t.place ? ['', '1st', '2nd', '3rd', '4th'][t.place] : '';
+        return '<tr class="' + (t.place === 1 ? 'champ-row' : '') + '"><td class="rk">' + t.rank + '</td>' +
+          '<td class="tm"><a href="' + href('team', { team: t.teamId }) + '">' + esc(t.name) + '</a>' + (t.place === 1 ? ' <span class="gold">♛</span>' : '') + '</td>' +
+          '<td>' + t.gp + '</td><td>' + t.w + '</td><td>' + t.l + '</td>' + (soccer ? '<td>' + t.d + '</td>' : '') +
+          (vb ? '<td>' + t.setsW + '–' + t.setsL + '</td>' : '') +
+          '<td>' + t.pf + '</td><td>' + t.pa + '</td><td>' + signed(t.diff) + '</td><td>' + fmt1(t.ppg) + '</td>' +
+          '<td class="form">' + t.form.map(function (x) { return '<span class="f-' + x + '">' + x + '</span>'; }).join('') + '</td>' +
+          '<td>' + esc(t.reached) + '</td><td class="place">' + esc(place) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function kpi(value, label, sub) {
+    return '<div class="kpi card"><span class="kpi-label">' + esc(label) + '</span><strong>' + esc(value) + '</strong>' +
+      (sub ? '<span class="kpi-sub">' + esc(sub) + '</span>' : '') + '</div>';
+  }
+
+  function statsPage(state) {
+    var p = state.params;
+    var now = state.store.now();
+    var ph = H.eventPhase(now, C.EVENT.days, TZ);
+    var sport = C.SPORTS[p.sport] ? p.sport : (ph.day ? ph.day.sport : 'basketball');
+    var kind = p.view === 'teams' ? 'teams' : 'players';
+    var div = C.EVENT.divisions[p.division] ? p.division : 'all';
+    var divs = div === 'all' ? H.DIVISION_ORDER : [div];
+    var views = divs.map(function (d) { return state.store.views[sport][d]; });
+    var q = (state.statsQuery || '').trim().toLowerCase();
+
+    // headline numbers
+    var games = 0, total = 0, teamsN = 0, sets = 0;
+    views.forEach(function (v) {
+      teamsN += Object.keys(v.teams).length;
+      v.games.forEach(function (g) {
+        if (g.status !== 'final' || g.forfeitBy) return;
+        games++;
+        if (sport === 'volleyball') sets += (g.setsWon1 || 0) + (g.setsWon2 || 0);
+        else total += (g.score1 || 0) + (g.score2 || 0);
+      });
+    });
+    var players = [];
+    views.forEach(function (v) {
+      KO.stats.playerStats(v).forEach(function (r) { r.division = v.division; players.push(r); });
+    });
+    var pkey = sport === 'soccer' ? function (x) { return [-x.goals, x.red, x.yellow]; } : function (x) { return [-x.pts, -x.ppg]; };
+    players.sort(function (a, b) {
+      var ka = pkey(a), kb = pkey(b);
+      for (var i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i] - kb[i];
+      return a.name.localeCompare(b.name);
+    });
+    var prev = null;
+    players.forEach(function (r, i) { var k = JSON.stringify(pkey(r)); if (k !== prev) { r.rank = i + 1; prev = k; } else r.rank = players[i - 1].rank; });
+    var top = players[0];
+    var topVal = top ? (sport === 'soccer' ? top.goals : top.pts) : 0;
+    var unit = sport === 'soccer' ? 'goals' : 'points';
+    var kpis = '<div class="kpis">' +
+      kpi(teamsN, 'Teams', players.length + ' players') +
+      kpi(games, sport === 'volleyball' ? 'Matches played' : 'Games played', '') +
+      (sport === 'volleyball' ? kpi(sets, 'Sets played', '') : kpi(total, sport === 'soccer' ? 'Goals scored' : 'Points scored', games ? fmt1(total / games) + ' per game' : '')) +
+      kpi(top && topVal ? topVal : '—', 'Top scorer', top && topVal ? top.name + ' · ' + top.team : 'No ' + unit + ' yet') +
+    '</div>';
+
+    var seg = '<div class="seg" role="group" aria-label="Sport">' + H.SPORT_ORDER.map(function (s) {
+      return '<button data-action="go" data-href="' + href('stats', { sport: s, view: kind, division: div === 'all' ? '' : div }) + '" aria-pressed="' + (s === sport) + '">' + esc(sportName(s)) + '</button>';
+    }).join('') + '</div>';
+    var toggle = '<div class="chips" role="group" aria-label="View">' + [['players', 'Players'], ['teams', 'Teams']].map(function (v) {
+      return '<button class="chip chip-strong" data-action="go" data-href="' + href('stats', { sport: sport, view: v[0], division: div === 'all' ? '' : div }) + '" aria-pressed="' + (v[0] === kind) + '">' + v[1] + '</button>';
+    }).join('') + '</div>';
+    var chips = '<div class="chips" role="group" aria-label="Division">' +
+      [['all', 'All divisions']].concat(H.DIVISION_ORDER.map(function (x) { return [x, divName(x)]; })).map(function (c) {
+        return '<button class="chip" data-action="go" data-href="' + href('stats', { sport: sport, view: kind, division: c[0] === 'all' ? '' : c[0] }) + '" aria-pressed="' + (c[0] === div) + '">' + esc(c[1]) + '</button>';
+      }).join('') + '</div>';
+    var search = '<input id="stats-search" class="input stats-search" type="search" autocomplete="off" data-action="stats-search" placeholder="Search ' + kind + '…" value="' + esc(state.statsQuery || '') + '">';
+
+    var body;
+    if (kind === 'players') {
+      var list = q ? players.filter(function (r) { return (r.name + ' ' + r.team + ' ' + r.number).toLowerCase().indexOf(q) !== -1; }) : players;
+      var limit = state.statsLimit || 25;
+      body = '<p class="muted small">' + esc(sport === 'soccer' ? 'Ranked by goals.' : sport === 'basketball' ? 'Ranked by points.' : 'Ranked by points (kills + aces + blocks). Opponent errors count for the team only.') +
+        ' Showing ' + Math.min(limit, list.length) + ' of ' + list.length + '.</p>' +
+        playersTable(list.slice(0, limit), sport, { showDiv: div === 'all' }) +
+        (list.length > limit ? '<p><button class="btn btn-outline" data-action="stats-more">Show more</button></p>' : '');
+    } else {
+      body = views.map(function (v) {
+        var rows = KO.stats.teamStats(v);
+        if (q) rows = rows.filter(function (r) { return r.name.toLowerCase().indexOf(q) !== -1; });
+        return (divs.length > 1 ? '<h3 class="sub-head">' + esc(divName(v.division)) + '</h3>' : '') + teamsTable(rows, sport);
+      }).join('') + '<p class="muted small">In finishing order: placings first, then how far each team got, then standings.</p>';
+    }
+
+    return '<div class="wrap page">' +
+      '<div class="kicker">' + C.EVENT.year + ' · ' + esc(sportName(sport)) + '</div><h1 class="display">Stats</h1>' +
+      '<div class="filters">' + seg + '<div class="stats-bar">' + toggle + search + '</div>' + chips + '</div>' +
+      kpis + body + '</div>';
+  }
+
+  function teamPlayers(view, teamId) {
+    var rows = KO.stats.playerStats(view).filter(function (r) { return r.teamId === teamId; });
+    if (!rows.length) return '';
+    var sport = view.sport;
+    var key = sport === 'soccer' ? 'goals' : 'pts';
+    // rank within the team (rows are already in leaderboard order)
+    rows.forEach(function (r, i) { r.rank = i > 0 && r[key] === rows[i - 1][key] ? rows[i - 1].rank : i + 1; });
+    var leaders = [];
+    var best = rows.slice().sort(function (a, b) { return b[key] - a[key]; })[0];
+    if (best && best[key]) leaders.push([best, sport === 'soccer' ? best.goals + ' goals' : sport === 'basketball' ? fmt1(best.ppg) + ' points per game' : best.pts + ' points']);
+    if (sport === 'basketball') {
+      var threes = rows.slice().sort(function (a, b) { return b.fg3 - a.fg3; })[0];
+      if (threes && threes.fg3) leaders.push([threes, threes.fg3 + ' three-pointers']);
+      var hi = rows.slice().sort(function (a, b) { return b.high - a.high; })[0];
+      if (hi && hi.high) leaders.push([hi, hi.high + ' points in one game']);
+    }
+    if (sport === 'volleyball') {
+      ['kill', 'ace', 'block'].forEach(function (k) {
+        var x = rows.slice().sort(function (a, b) { return b[k] - a[k]; })[0];
+        if (x && x[k]) leaders.push([x, x[k] + ' ' + (k === 'kill' ? 'kills' : k === 'ace' ? 'aces' : 'blocks')]);
+      });
+    }
+    // one card per player, listing everything they lead the team in
+    var byPlayer = [];
+    leaders.forEach(function (l) {
+      var found = byPlayer.filter(function (b) { return b.p === l[0]; })[0];
+      if (found) found.lines.push(l[1]); else byPlayer.push({ p: l[0], lines: [l[1]] });
+    });
+    return '<h2 class="display-sm">Players</h2>' +
+      (byPlayer.length ? '<div class="leaders">' + byPlayer.map(function (b) {
+        return '<div class="leader card"><span class="jn">' + esc(jersey(b.p) || '–') + '</span><div><b>' + esc(b.p.name) + '</b><span>' +
+          esc(b.lines.join(' · ')) + '</span></div></div>';
+      }).join('') + '</div>' : '') +
+      playersTable(rows, sport, { hideTeam: true });
+  }
+
+  function gamePage(state, id) {
+    var views = state.store.views;
+    var g = null, view = null;
+    H.SPORT_ORDER.forEach(function (s) {
+      H.DIVISION_ORDER.forEach(function (d) {
+        var found = views[s][d].games.filter(function (x) { return x.id === id; })[0];
+        if (found) { g = found; view = views[s][d]; }
+      });
+    });
+    if (!g) return '<div class="wrap page"><h1 class="display">Game not found</h1><p><a class="arrow-link" href="#schedule">Full schedule</a></p></div>';
+    var box = KO.stats.boxScore(g, view);
+    var score = H.scoreText(g);
+    var sets = g.sport === 'volleyball' ? (g.sets || []) : [];
+    function side(n) {
+      var t = n === 1 ? g.t1 : g.t2;
+      var lines = box['side' + n].filter(function (p) { return p.pts || p.goals || p.yellow || p.red; });
+      var extra = box.noPlayer[n - 1] ? '<p class="muted small">+' + box.noPlayer[n - 1] + ' from opponent errors</p>' : '';
+      return '<section class="box-side"><h2 class="display-sm">' + teamLink(t) + (score ? ' <span class="box-score">' + esc(score[n - 1]) + '</span>' : '') + '</h2>' +
+        (lines.length ? playersTable(lines.map(function (p, i) { p.rank = i + 1; p.gp = 1; return p; }), g.sport, { hideTeam: true }) :
+          '<p class="empty">No scoring recorded yet.</p>') + extra + '</section>';
+    }
+    return '<div class="wrap page">' +
+      '<div class="kicker">' + esc(sportName(g.sport) + ' · ' + divName(g.division) + ' · ' + KO.gameName(g.id, g)) + '</div>' +
+      '<h1 class="display">Box score</h1>' +
+      '<div class="schedule">' + gameRow(g, { showSport: false }) + '</div>' +
+      (sets.length ? '' : '') +
+      '<div class="box-grid">' + side(1) + side(2) + '</div>' +
+      '<p class="muted small">' + esc(g.sport === 'basketball' ? 'HI = points in this game; 3PM / 2PM / FTM = baskets made.' : '') + '</p></div>';
+  }
+
   KO.views = {
+    stats: statsPage,
+    game: gamePage,
     guests: guests,
     home: home,
     schedule: schedule,
