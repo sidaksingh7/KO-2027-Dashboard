@@ -128,3 +128,40 @@ body { background: var(--bg) var(--glow) no-repeat; min-height: 100vh; }
 .banner-form, .links, .sandbox-tools { margin-top: 18px; padding: 16px; display: grid; gap: 10px; }
 .banner-form .display-sm, .links .display-sm, .sandbox-tools .display-sm { margin: 0; }
 .sandbox-tools { border-color: var(--gold-soft); }
+
+/* soccer cards */
+.sc-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.card-btn { min-height: 40px; border: 0; font: 600 14px/1 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; border-radius: 4px; }
+.card-btn.yellow { background: #F2C230; color: #1A1205; }
+.card-btn.red { background: #D63A3F; color: #fff; }
+.card-btn[disabled] { opacity: .4; }
+
+/* last plays */
+.plays { margin-top: 12px; padding: 12px 14px; }
+.plays ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.plays li { display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.pl-what { font: 400 18px/1 var(--font-display); color: var(--gold); letter-spacing: .03em; }
+.pl-what.k-yellow { color: #F2C230; } .pl-what.k-red { color: #FF6B6F; } .pl-what.k-opp-error { color: var(--muted); font-size: 14px; }
+.pl-x { width: 36px; height: 36px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); }
+
+/* player picker (bottom sheet on phones) */
+.pick-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 80; }
+.pick-sheet {
+  position: fixed; z-index: 81; left: 0; right: 0; bottom: 0; max-height: 85vh; overflow-y: auto;
+  background: #0E1C42; border-top: 2px solid var(--gold); padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+}
+@media (min-width: 700px) { .pick-sheet { left: 50%; right: auto; bottom: auto; top: 10vh; transform: translateX(-50%); width: 620px; border: 2px solid var(--gold); } }
+.pick-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.pick-head .display-sm { margin: 4px 0 0; }
+.pick-kinds { margin-bottom: 12px; }
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.pick-player { min-height: 64px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; text-align: left; background: var(--panel); border: 1px solid var(--line-2); color: var(--cream); }
+.pick-player:hover, .pick-player:focus { border-color: var(--gold); }
+.pick-player b { font: 400 30px/1 var(--font-display); color: var(--gold); min-width: 2ch; }
+.pick-player span { font-size: 16px; line-height: 1.2; }
+.pick-opp { margin-top: 12px; }
+
+/* roster editor */
+.team-rows li { flex-wrap: wrap; }
+.roster-form { flex-basis: 100%; margin-top: 10px; }
+.roster-text { min-height: 220px; font: 400 16px/1.5 var(--font-ui); resize: vertical; }

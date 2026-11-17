@@ -29,7 +29,9 @@
     page: 'score',
     params: {},
     toast: null,
-    preview: null        // schedule preview
+    preview: null,       // schedule preview
+    pick: null,          // open player picker: { game, side, pts | card, kind }
+    rosterOpen: null     // team id whose roster editor is open
   };
 
   (function loadCtx() {
@@ -264,8 +266,12 @@
               (g.status !== 'live' || !ready ? ' disabled' : '') + '>+' + p + '</button>';
           }).join('') +
           '<button class="btn btn-outline sc-minus" data-action="points" data-side="' + n + '" data-n="-1"' +
-            (g.status !== 'live' || !ready ? ' disabled' : '') + ' aria-label="Undo one point">−1</button>' +
-        '</div></div>';
+            (g.status !== 'live' || !ready ? ' disabled' : '') + ' aria-label="Undo the last point">−1</button>' +
+        '</div>' +
+        (sport === 'soccer' ? '<div class="sc-cards">' +
+          '<button class="card-btn yellow" data-action="card" data-side="' + n + '" data-color="yellow"' + (g.status !== 'live' || !ready ? ' disabled' : '') + '>Yellow</button>' +
+          '<button class="card-btn red" data-action="card" data-side="' + n + '" data-color="red"' + (g.status !== 'live' || !ready ? ' disabled' : '') + '>Red</button></div>' : '') +
+        '</div>';
     }
 
     var timerCard = '<section class="timer-card card">' +
@@ -326,6 +332,7 @@
       timerCard +
       '<section class="scoreboard">' + teamCol(1) + '<div class="sc-vs">vs</div>' + teamCol(2) + '</section>' +
       setsInfo + winnerPick +
+      lastPlays(g, f) +
       '<section class="sc-status">' + statusBtns + '</section>' +
       '<details class="sc-more card"><summary>Corrections &amp; forfeits</summary><div class="t-btns">' +
         '<button class="btn btn-outline" data-action="setscore"' + (!ready ? ' disabled' : '') + '>Type in score…</button>' +
@@ -333,7 +340,68 @@
           ? '<button class="btn btn-outline" data-action="clearforfeit">Undo forfeit</button>'
           : '<button class="btn btn-outline" data-action="forfeit" data-side="1"' + (!ready ? ' disabled' : '') + '>' + esc(g.t1.name) + ' didn’t show</button>' +
             '<button class="btn btn-outline" data-action="forfeit" data-side="2"' + (!ready ? ' disabled' : '') + '>' + esc(g.t2.name) + ' didn’t show</button>') +
-      '</div></details>';
+      '</div></details>' +
+      (state.pick && state.pick.game === id ? pickerSheet(g, f) : '');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Player picker + last plays (who scored each point)
+  // ---------------------------------------------------------------------------
+
+  var KIND_LABEL = { goal: 'Goal', pts: '', kill: 'Kill', ace: 'Ace', block: 'Block', 'opp-error': 'Opponent error', yellow: 'Yellow card', red: 'Red card' };
+
+  function rosterOf(f, teamId) {
+    var t = (live(f.sport, f.div).teams || {})[teamId];
+    var r = (t && t.roster) || {};
+    return Object.keys(r).map(function (pid) { return { id: pid, name: r[pid].name, number: r[pid].number }; })
+      .sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }) || a.name.localeCompare(b.name); });
+  }
+
+  function playerLabel(f, teamId, pid) {
+    if (!pid) return 'No player';
+    var t = (live(f.sport, f.div).teams || {})[teamId];
+    var p = t && t.roster && t.roster[pid];
+    return p ? (p.number !== '' && p.number != null ? '#' + p.number + ' ' : '') + p.name : 'Unknown player';
+  }
+
+  function lastPlays(g, f) {
+    var events = S.eventsArray(g);
+    if (!events.length) return '';
+    var ids = [g.t1.id, g.t2.id];
+    var items = events.map(function (e, i) { return { e: e, i: i }; }).slice(-8).reverse();
+    return '<section class="plays card"><div class="kicker">Last plays</div><ul>' + items.map(function (x) {
+      var e = x.e;
+      var what = e.kind === 'pts' ? '+' + e.pts : (KIND_LABEL[e.kind] || e.kind) + (e.pts && e.kind !== 'goal' ? ' +' + e.pts : '');
+      return '<li><span class="pl-what k-' + esc(e.kind) + '">' + esc(what) + '</span>' +
+        '<span class="pl-who">' + esc(e.kind === 'opp-error' ? '' : playerLabel(f, ids[e.side - 1], e.playerId)) +
+        ' <span class="muted">' + esc((e.side === 1 ? g.t1 : g.t2).name) + (e.set ? ' · Set ' + e.set : '') + '</span></span>' +
+        '<button class="pl-x" data-action="remove-event" data-i="' + x.i + '" aria-label="Remove this entry">✕</button></li>';
+    }).join('') + '</ul></section>';
+  }
+
+  function pickerSheet(g, f) {
+    var p = state.pick;
+    var team = p.side === 1 ? g.t1 : g.t2;
+    var players = rosterOf(f, team.id);
+    var vb = f.sport === 'volleyball';
+    var title = p.card ? (p.card === 'red' ? 'Red card' : 'Yellow card') :
+      f.sport === 'soccer' ? 'Goal' : vb ? 'Point' : '+' + p.pts + (p.pts === 3 ? ' (3-pointer)' : p.pts === 1 ? ' (free throw)' : '');
+    var kinds = vb && !p.card ? '<div class="seg seg-sm pick-kinds" role="group" aria-label="Point type">' + ['kill', 'ace', 'block'].map(function (k) {
+      return '<button data-action="pick-kind" data-kind="' + k + '" aria-pressed="' + ((p.kind || 'kill') === k) + '">' + KIND_LABEL[k] + '</button>';
+    }).join('') + '</div>' : '';
+    var grid = players.length
+      ? '<div class="pick-grid">' + players.map(function (pl) {
+          return '<button class="pick-player" data-action="pick-player" data-player="' + esc(pl.id) + '">' +
+            '<b>' + esc(pl.number !== '' && pl.number != null ? pl.number : '–') + '</b><span>' + esc(pl.name) + '</span></button>';
+        }).join('') + '</div>'
+      : '<p class="notice notice-err">' + esc(team.name) + ' has no players yet. Add them in <a href="#teams">Teams → Roster</a> to score this game.</p>';
+    return '<div class="pick-backdrop" data-action="pick-cancel"></div>' +
+      '<section class="pick-sheet" role="dialog" aria-modal="true" aria-label="Who scored">' +
+        '<div class="pick-head"><div><div class="kicker">' + esc(team.name) + '</div><h2 class="display-sm">' + esc(title) + ' — who?</h2></div>' +
+        '<button class="btn btn-outline btn-sm" data-action="pick-cancel">Cancel</button></div>' +
+        kinds + grid +
+        (vb && !p.card ? '<button class="btn btn-outline btn-big pick-opp" data-action="pick-opp-error">Opponent error (no player)</button>' : '') +
+      '</section>';
   }
 
   function tickTimer() {
@@ -378,10 +446,19 @@
           '<span class="tr-name">' + esc(t.name) + (dq[id] ? ' <span class="pill pill-dq">DQ</span>' : '') + '</span>' +
           (soccer ? groupSel(id, t.group) : '') +
           '<span class="tr-btns">' +
+            '<button class="btn btn-ghost btn-sm" data-action="roster" data-team="' + esc(id) + '">Roster (' + Object.keys(t.roster || {}).length + ')</button>' +
             '<button class="btn btn-ghost btn-sm" data-action="rename" data-team="' + esc(id) + '">Rename</button>' +
             '<button class="btn btn-ghost btn-sm" data-action="dq" data-team="' + esc(id) + '">' + (dq[id] ? 'Undo DQ' : 'DQ') + '</button>' +
             '<button class="btn btn-ghost btn-sm" data-action="remove-team" data-team="' + esc(id) + '"' + (hasGames ? ' disabled title="Has games"' : '') + '>Remove</button>' +
-          '</span></li>';
+          '</span>' +
+          (state.rosterOpen === id ? '<form class="roster-form" data-team="' + esc(id) + '">' +
+            '<label class="label" for="roster-text">Players — one per line, number first (e.g. 24 Sandhu)</label>' +
+            (t.testRoster ? '<p class="muted small">These are made-up test players. Replace them with the real roster.</p>' : '') +
+            '<textarea class="input roster-text" id="roster-text" rows="10" data-fresh>' + esc(KO.stats.rosterText(t.roster)) + '</textarea>' +
+            '<div class="t-btns"><button class="btn" type="submit">Save roster</button>' +
+            '<button class="btn btn-outline" type="button" data-action="roster" data-team="' + esc(id) + '">Close</button></div>' +
+          '</form>' : '') +
+          '</li>';
       }).join('') + '</ul>' : '<p class="empty">No teams yet.</p>') +
       '<p class="muted small">Teams reach the public site when you <a href="#publish">publish</a> this division.</p>';
   }
@@ -668,7 +745,44 @@
 
       // --- scorer
       case 'points':
-        act(function (cur) { return S.addPoints(cur, +el.getAttribute('data-side'), +el.getAttribute('data-n')); });
+        var n = +el.getAttribute('data-n');
+        if (n < 0) {
+          act(function (cur) { return S.undoLastScore(cur, +el.getAttribute('data-side')); });
+        } else {
+          state.pick = { game: state.params.game, side: +el.getAttribute('data-side'), pts: n, kind: 'kill' };
+          render();
+        }
+        break;
+      case 'card':
+        state.pick = { game: state.params.game, side: +el.getAttribute('data-side'), card: el.getAttribute('data-color') };
+        render();
+        break;
+      case 'pick-kind':
+        state.pick.kind = el.getAttribute('data-kind');
+        render();
+        break;
+      case 'pick-cancel':
+        state.pick = null;
+        render();
+        break;
+      case 'pick-player':
+      case 'pick-opp-error':
+        var pk = state.pick;
+        if (!pk) break;
+        var pid = a === 'pick-player' ? el.getAttribute('data-player') : null;
+        state.pick = null;
+        render();
+        act(function (cur) {
+          if (pk.card) return S.cardEvent(cur, pk.side, pk.card, pid, KO.now());
+          var kind = cur.sport === 'volleyball' ? (pid ? pk.kind || 'kill' : 'opp-error') : undefined;
+          return S.scoreEvent(cur, pk.side, pk.pts, { playerId: pid, kind: kind, at: KO.now() });
+        });
+        break;
+      case 'remove-event':
+        if (root.confirm('Remove this entry? Its points come off the score.')) {
+          var idx = +el.getAttribute('data-i');
+          act(function (cur) { return S.removeEvent(cur, idx); }, 'Entry removed');
+        }
         break;
       case 'start': act(S.startGame, 'Game started'); break;
       case 'final':
@@ -743,6 +857,11 @@
         break;
 
       // --- teams
+      case 'roster':
+        state.rosterOpen = state.rosterOpen === team ? null : team;
+        render();
+        if (state.rosterOpen) { var ta = doc.getElementById('roster-text'); if (ta) ta.focus(); }
+        break;
       case 'rename':
         g = live().teams[team];
         var nn = root.prompt('New name for ' + g.name + ':', g.name);
@@ -872,6 +991,15 @@
       });
       state.preview = Object.assign({ sport: state.sport }, res);
       render();
+    } else if (e.target.classList.contains('roster-form')) {
+      var tid = e.target.getAttribute('data-team');
+      var parsed = KO.stats.parseRoster(doc.getElementById('roster-text').value, H.slugify);
+      if (parsed.errors.length) { toast(parsed.errors.join(' · '), 'err'); return; }
+      var count = Object.keys(parsed.roster).length;
+      result(A.saveRoster(state.sport, state.div, tid, parsed.roster).then(function (r) {
+        state.rosterOpen = null;
+        return r;
+      }), 'Saved ' + count + ' player' + (count === 1 ? '' : 's') + ' — publish to show them on the public site');
     } else if (id === 'banner-form') {
       result(A.setBanner(doc.getElementById('banner-text').value, doc.getElementById('banner-level').value), 'Banner saved');
     }

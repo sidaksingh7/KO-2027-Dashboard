@@ -148,11 +148,14 @@
   // Browser: connect to Firebase
   // ---------------------------------------------------------------------------
 
-  // false until the TODO config above is filled in.
   KO.isConfigured = FIREBASE_CONFIG.apiKey !== 'PASTE_HERE';
 
+  // Practice mode: add ?sandbox=1 to any page address to use the in-browser
+  // sandbox instead of the real database (training volunteers, testing).
+  var forceSandbox = root.location && /[?&]sandbox=1\b/.test(root.location.search);
+
   var db, auth;
-  if (KO.isConfigured) {
+  if (KO.isConfigured && !forceSandbox) {
     var firebase = root.firebase;
     if (!firebase) {
       throw new Error('Firebase SDK not loaded. Add the firebase-*-compat.js <script> tags before firebase.js.');
@@ -166,8 +169,8 @@
     // Sandbox: a stand-in database saved in this browser (src/shared/local-db.js).
     var createLocalDb = root.KO && root.KO.createLocalDb;
     if (!createLocalDb) throw new Error('Firebase not configured and local-db.js not loaded before firebase.js.');
-    console.warn('[KO] Firebase config not filled in yet (see TODO in src/shared/firebase.js). ' +
-      'Using the in-browser SANDBOX database — changes stay on this computer.');
+    console.warn('[KO] Using the in-browser SANDBOX database (' + (forceSandbox ? 'practice mode, ?sandbox=1' : 'Firebase config not filled in') +
+      ') — changes stay on this computer.');
     db = createLocalDb();
     auth = null;
     KO.mode = 'sandbox';

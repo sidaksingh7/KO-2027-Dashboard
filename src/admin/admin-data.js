@@ -156,6 +156,14 @@
     return KO.liveRef(sport, div, 'teams', id).remove().then(function () { return {}; });
   }
 
+  // Replace a team's roster: { playerId: { name, number } }
+  function saveRoster(sport, div, id, roster) {
+    return KO.liveRef(sport, div, 'teams', id).update({
+      roster: roster && Object.keys(roster).length ? roster : null,
+      testRoster: null
+    }).then(function () { return {}; });
+  }
+
   function setDq(sport, div, id, on) {
     return KO.liveRef(sport, div, 'dq', id).set(on ? true : null);
   }
@@ -254,7 +262,9 @@
       var live = snap.val() || {};
       var data = viewData(live);
       var teams = {};
-      Object.keys(data.teams).forEach(function (id) { teams[id] = { name: data.teams[id].name }; });
+      Object.keys(data.teams).forEach(function (id) {
+        teams[id] = { name: data.teams[id].name, roster: data.teams[id].roster || null };
+      });
       return KO.publishedRef(sport, div).set({
         teams: teams,
         games: data.games,
@@ -304,11 +314,29 @@
     }
   };
 
-  // Adds any test team that isn't there yet (keeps existing teams), then
-  // publishes every division. Resolves { added, divisions }.
+  var TEST_FIRST = ['Arjan', 'Gurpreet', 'Harjot', 'Jaskaran', 'Manpreet', 'Navdeep', 'Prabhjot', 'Simran',
+    'Tejbir', 'Amrit', 'Sukhman', 'Jaspal', 'Kanwar', 'Ravneet', 'Dilpreet', 'Gurveer'];
+  var TEST_LAST = ['Sandhu', 'Gill', 'Dhillon', 'Sidhu', 'Brar', 'Grewal', 'Bains', 'Randhawa', 'Cheema', 'Virk'];
+
+  // 8 made-up players, different for each team
+  function testRoster(seed) {
+    var roster = {};
+    for (var i = 0; i < 8; i++) {
+      var name = TEST_FIRST[(seed * 3 + i * 5) % TEST_FIRST.length] + ' ' + TEST_LAST[(seed + i * 3) % TEST_LAST.length];
+      var number = String(((seed * 7 + i * 11) % 98) + 1);
+      var id = H.slugify(number + '-' + name);
+      if (!roster[id]) roster[id] = { name: name, number: number };
+    }
+    return roster;
+  }
+
+  // Adds any test team that isn't there yet (keeps existing teams), gives made-up
+  // players to every team that has no roster, then publishes every division.
+  // Resolves { added, divisions }.
   function addTestTeams() {
     var added = 0;
     var jobs = [];
+    var seed = 0;
     H.SPORT_ORDER.forEach(function (s) {
       H.DIVISION_ORDER.forEach(function (d) {
         var list = TEST_TEAMS[s][d];
@@ -319,10 +347,16 @@
             var name = Array.isArray(entry) ? entry[0] : entry;
             var id = H.teamId(name, s, d);
             if (existing[id]) return;
-            var team = { name: name, test: true, createdAt: KO.now() };
+            var team = { name: name, test: true, createdAt: KO.now(), roster: testRoster(++seed), testRoster: true };
             if (Array.isArray(entry)) team.group = entry[1];
             update[id] = team;
             added++;
+          });
+          Object.keys(existing).forEach(function (id) {
+            if (!existing[id].roster) {
+              update[id + '/roster'] = testRoster(++seed);
+              update[id + '/testRoster'] = true;
+            }
           });
           return Object.keys(update).length ? KO.liveRef(s, d, 'teams').update(update) : null;
         }).then(function () { return publishDivision(s, d); }));
@@ -342,13 +376,16 @@
           var live = snap.val() || {};
           var teams = live.teams || {};
           var ids = Object.keys(teams).filter(function (id) { return teams[id].test; });
-          if (!ids.length) return null;
+          // made-up players given to real teams come off too
+          var fakeRosters = Object.keys(teams).filter(function (id) { return !teams[id].test && teams[id].testRoster; });
+          if (!ids.length && !fakeRosters.length) return null;
           if (ids.some(function (id) { return teamHasGames(live, id); })) {
             blocked.push(KO.config.SPORTS[s].name + ' ' + KO.config.EVENT.divisions[d]);
             return null;
           }
           var update = {};
           ids.forEach(function (id) { update[id] = null; });
+          fakeRosters.forEach(function (id) { update[id + '/roster'] = null; update[id + '/testRoster'] = null; });
           removed += ids.length;
           return KO.liveRef(s, d, 'teams').update(update).then(function () {
             return KO.publishedRef(s, d, 'publishedAt').once('value').then(function (p) {
@@ -404,6 +441,7 @@
     removeTeam: removeTeam,
     teamHasGames: teamHasGames,
     setDq: setDq,
+    saveRoster: saveRoster,
     setManualOrder: setManualOrder,
     buildSchedule: buildSchedule,
     startedGames: startedGames,
